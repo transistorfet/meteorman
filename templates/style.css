@@ -1,0 +1,219 @@
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 11pt;
+  background-color: #C0F0C0;
+  text-color: #000000;
+
+  width: calc(100% - 6px);
+  margin: 0 3px;
+}
+
+input,
+select,
+button {
+  color: #fff;
+  background-color: #666666;
+  border: 1px solid black;
+  padding: 1px 4px;
+}
+
+button:active {
+  background-color: #444444;
+}
+
+a:visited {
+  color: #4B1559;
+}
+
+.mini-note {
+  font-size: 0.75em;
+}
+
+.alert {
+  background: #D09090;
+  border: 1px solid #666;
+  overflow: hidden;
+  padding: 2px 4px 2px 4px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.alert .close {
+  float: right;
+}
+
+#header-logo,
+#header-logo a {
+  display: inline-block;
+  color: #235915;
+  text-decoration: none;
+}
+
+#side-nav {
+  float: left;
+  width: 145px;
+  margin-right: 5px;
+}
+
+#side-nav ul {
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+  overflow: auto;
+  background-color: #90D090;
+}
+
+#side-nav > ul {
+  width: 100%;
+}
+
+#side-nav li ul {
+    /* padding-left: 4px; */
+}
+
+#side-nav li a {
+  display: block;
+  text-decoration: none;
+  padding: 4px 6px 4px 6px;
+  color: black;
+}
+
+#side-nav li a:hover {
+  background: #235915;
+  color: white;
+}
+
+#side-nav li a:active {
+  background: #235915;
+}
+
+#side-nav.horizontal {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+#side-nav.horizontal > ul {
+  position: relative;
+  display: inline-table;
+}
+
+#side-nav.horizontal > ul:after {
+  content: "";
+  clear: both;
+  display: block;
+}
+
+#side-nav.horizontal > ul > * {
+  float: left;
+}
+
+#side-nav.horizontal ul ul {
+  display: none;
+
+  position: absolute;
+  top: 100%;
+}
+
+#side-nav.horizontal ul li:hover > ul {
+  display: block;
+}
+
+#side-nav.horizontal > ul > li > a {
+  text-align: center;
+}
+
+#side-nav-toggle {
+  
+}
+
+#user-nav {
+  float: right;
+}
+
+#content {
+  float: left;
+  overflow: auto;
+  width: 100%;
+}
+
+#game-add-players ul {
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+}
+
+#game-add-players li {
+  padding: 2px 0px;
+}
+
+#game-waiting td {
+  padding: 1px 4px;
+}
+
+
+#game-area {
+  margin: 0px auto;
+}
+
+#game-panel {
+  width: 100%;
+}
+
+#game-logs {
+  font-size: 0.8em;
+  background-color: #DDDDDD;
+  border: 1px solid #235915;
+  padding: 3px;
+
+  overflow: auto;
+  height: 100%;
+  max-height: 50ex;
+}
+
+#game-options {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+.game-turn {
+  background-color: #90D090;
+}
+
+@media screen and (min-width: 1000px) {
+  body {
+    width: 1000px;
+    margin: 0 auto;
+  }
+
+  #side-nav {
+    /*display: block;*/
+  }
+
+  #side-nav-toggle {
+    /*display: none;*/
+  }
+
+  #content {
+    /*width: 600px;*/
+    width: 100%;
+  }
+
+  #game-area {
+    display: inline-block;
+    width: 60%;
+  }
+
+  #game-panel {
+    width: 40%;
+    float: right;
+  }
+
+  #game-logs {
+
+  }
+
+}
+
+
+

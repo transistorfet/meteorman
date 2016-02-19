@@ -1,0 +1,49 @@
+<head>
+  <title>meteorman</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+
+<body>
+</body>
+
+<template name="Base">
+  <div id="header">
+    <div id="header-logo">
+      <a href="/"><h3>Jabberwocky Games</h3></a>
+    </div>
+
+    <div id="user-nav">
+      {{> loginButtons }}
+    </div>
+  </div>
+
+  <div id="side-nav" class="horizontal">
+    <ul>
+      <!-- <li><a href="/">Home</a></li> -->
+      {{> GameNavLinks }}
+    </ul>
+  </div>
+
+  <div id="content">
+    {{> flashMessages}}
+
+    <!--
+    {% if messages %}
+    <div>
+      <strong>Messages:</strong>
+      <ul>
+        {% for message in messages %}
+        <li>{{message}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    -->
+
+    {{> yield}}
+
+  </div>
+</template>
+
+

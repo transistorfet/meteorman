@@ -1,0 +1,44 @@
+
+<template name="Games_Blackjack">
+
+  <div id="games-blackjack">
+    <div id="dealers-cards">
+      <h5>Dealer</h5>
+      <div class="cards-played">
+      {{#each card in view.dealer}}
+        <div class="card" data-card="{{card}}"></div>
+      {{/each}}
+      </div>
+
+    </div>
+
+    <div id="players-cards">
+      <div class="cards-played">
+      {{#each card in view.player}}
+        <div class="card" data-card="{{card}}"></div>
+      {{/each}}
+      </div>
+      <div id="game-player-score">Score: {{view.player_score}}</div>
+      <h5>You</h5>
+    </div>
+
+    {{#unless view.playing}}
+      <div id="game-dealer-score">Dealer's Score: {{view.dealer_score}}</div>
+    {{/unless}}
+
+    <div id="game-message">{{view.message}}</div>
+
+    {{#if view.playing}}
+      <button id="hit">Hit</button>
+      <button id="stay">Stay</button>
+    {{else}}
+      <button id="next">Next Round</button>
+    {{/if}}
+
+    <div id="game-rounds"></div>
+    <div id="game-wins">Wins: {{view.wins}}</div>
+    <div id="game-losses">Losses: {{view.losses}}</div>
+  </div>
+
+</template>
+

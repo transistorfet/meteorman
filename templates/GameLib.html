@@ -1,0 +1,176 @@
+
+<template name="GameSelectType">
+  {{#if currentGameList}}
+    <p>You are playing the following games:</p>
+    {{#each currentGameList}}
+      <li><a href="/play/{{_id}}">{{gametype}}</a></li>
+    {{/each}}
+  {{else}}
+    <select name="gametype">
+      <option value="rummy">Rummy</option>
+    </select>
+    <button id="game-start">Start</button>
+  {{/if}}
+</template>
+
+<template name="GameConfigure">
+  <h4>Starting New Game</h4>
+
+  <div id="game-add-players">
+    <ul>
+    <li data-slot="1">Player 1: You</li>
+    {{#each slot in slotsList}}
+      <li data-slot="{{slot.num}}">Player {{slot.num}}:
+        <select name="type">
+          <option value="empty">(empty)</option>
+          <option value="computer">Computer</option>
+          <option value="invite">Invite</option>
+          <option value="open">Open</option>
+        </select>
+        <input type="text" name="name" list="friends" value="" style="display: none;" />
+
+        {{#if slot.required}}
+          <span class="mini-note">(required)</span>
+        {{/if}}
+      </li>
+    {{/each}}
+    </ul>
+  </div>
+
+  <datalist id="friends">
+    <option value="testfriend">testfriend</option>
+    {{#each friend in user.profile.friends}}
+      <option value="{{friend}}">{{friend}}</option>
+    {{/each}}
+  </datalist>
+
+  {{#if configTemplate}}
+    <div id="game-extended-options">
+      {{> Template.dynamic template=configTemplate}}
+    </div>
+  {{/if}}
+
+  <button id="game-begin">Begin</button>
+
+</template>
+
+
+<template name="GameFind">
+  <table>
+    <thead>
+      <tr>
+        <th>Game Type</th>
+        <th>Slots</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {{#each game in list}}
+      <tr>
+        <td>{{game.gametype}}</td>
+        <td>{{game.options.slots.length}}</td>
+        <td><button class="game-join" type="button" data-id="{{game._id}}">Join</button></td>
+      </tr>
+    {{/each}}
+    </tbody>
+  </table>
+</template>
+
+
+<template name="GameWaiting">
+  <h4>Waiting for players to join...</h4>
+
+  <div id="game-waiting">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Type</th>
+          <th>Username</th>
+          <th colspan="0">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+      {{#each slot in data.options.slots}}
+        <tr>
+          <td>Player {{slot.slot}}:</td>
+          <td>{{slot.type}}</td>
+          {{#if slot.userId}}
+            <td><a href="/profile/{{slot.userId}}">{{slot.name}}</a></td>
+          {{else}}
+            <td>{{slot.name}}</td>
+          {{/if}}
+          {{#if isWaiting slot}}
+            <td>waiting...</td>
+            <td><button type="button" class="game-slot-cancel">Cancel</button></td>
+          {{else}}
+            <td colspan="0">ready</td>
+          {{/if}}
+        </tr>
+      {{/each}}
+      </tbody>
+    </table>
+  </div>
+</template>
+
+
+<template name="GameArea">
+  {{#with GameData gameId}}
+
+    <div id="game-area">
+      {{#if data.started}}
+        {{> Template.dynamic template=template data=data}}
+      {{else}}
+        {{> GameWaiting}}
+      {{/if}}
+    </div>
+
+    <div id="game-panel">
+      <div id="game-logs">
+        {{#each line in data.logs}}
+          {{line}}<br/>
+        {{/each}}
+        <!-- <input id="game-chat-input" type="text" /> -->
+      </div>
+      {{scrollLogs}}
+
+      <div id="game-options">
+        {{> GameOptions }}
+      </div>
+    </div>
+
+  {{/with}}
+</template>
+
+
+<template name="GameOptions">
+  <div id="game-options">
+    <!-- <button id="game-options-new">New Game</button> -->
+    <button id="game-options-quit">Quit Game</button>
+  </div>
+</template>
+
+
+<template name="GameNavLinks">
+  {{#with currentUser}}
+    <li><a href="#">My Games</a>
+      <ul>
+      {{#each myGameList}}
+        <li><a href="/play/{{_id}}">{{gametype}}-{{truncate _id 4}}</a></li>
+      {{else}}
+        <li><a href="#">(none)</a></li>
+      {{/each}}
+      </ul>
+    </li>
+    <li><a href="#">New Game</a>
+      <ul>
+      {{#each gameTypeList}}
+        <li><a href="/play/new/{{name}}">{{title}}</a></li>
+      {{/each}}
+      </ul>
+    </li>
+    <li><a href="/play/find">Find Game</a></li>
+    <li><a href="/profile/{{_id}}">Profile</a></li>
+  {{/with}}
+</template>
+ 

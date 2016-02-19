@@ -1,0 +1,54 @@
+
+<template name="Games_Poker">
+
+  <div id="games-poker">
+    <!--
+    <div id="players-cards">
+      <h5>You</h5>
+      <div class="cards-hand">
+      {{#each card in view.hand}}
+        <div class="card" data-card="{{card}}"></div>
+      {{/each}}
+      </div>
+    </div>
+    -->
+
+    {{#each hand in getHands}}
+      <div class="player-cards {{#if hand.isHandsTurn}}game-turn{{/if}}" {{attributeUserId userId}}>
+        <h5>{{hand.name}} - ¤{{hand.chips}} {{#if hand.isHandsTurn}}*{{/if}}</h5>
+        <div class="cards-hand">
+        {{#each card in hand.cards}}
+          <div class="card" data-card="{{card}}"></div>
+        {{/each}}
+        </div>
+        <div id="game-hand-message">{{hand.message}}</div>
+
+        {{#if isYourHand hand}}
+          <div class="local-controls">
+          {{#if hand.isHandsTurn}}
+            {{#if view.betting}}
+              <input id="raise-amount" type="number" min="1" max="100" value="1" />
+              <button id="raise">Raise</button>
+              <button id="call">Call: ¤{{view.call}}</button>
+              <button id="fold">Fold</button>
+            {{/if}}
+            {{#if view.trading}}
+              <button id="trade">Trade</button>
+            {{/if}}
+          {{/if}}
+
+          {{#if view.roundover}}
+            <button id="ready">Ready for Next Round</button>
+          {{/if}}
+          </div>
+        {{/if}}
+      </div>
+    {{/each}}
+
+    <div id="game-info">Pot: ¤{{view.pot}}</div>
+    <div id="game-message">{{view.message}}</div>
+
+  </div>
+
+</template>
+

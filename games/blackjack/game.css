@@ -1,0 +1,29 @@
+
+#games-blackjack .card {
+  width: 32px;
+  height: 48px;
+  background-image: url("/games/war/cardset.gif");
+
+  display: inline-block;
+  z-index: 10;
+}
+
+#games-blackjack #your-cards,
+#games-blackjack #opponent-cards {
+}
+
+#games-blackjack .cards-played {
+  display: inline-block;
+}
+
+#games-blackjack .cards-left {
+  vertical-align: center;
+  font-size: 0.8em;
+}
+
+#games-blackjack #game-message {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+

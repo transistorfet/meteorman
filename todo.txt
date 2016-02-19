@@ -1,0 +1,3 @@
+
+* when you go to a specific game that you don't belong to, it still shows the page but without the data
+
