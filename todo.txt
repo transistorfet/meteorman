@@ -1,3 +1,12 @@
 
 * when you go to a specific game that you don't belong to, it still shows the page but without the data
 
+* should you separate some stuff into a GameUtils library
+
+* Make it so that only some of the logs are sent to the client, with a mechanism to fetch more logs if the user scrolls up
+
+* add controls to change the cardsets in the game somehow
+* add mechanism to join a game already in progress
+* make it so when a player loses, they aren't booted from the game... maybe allow spectators?  or mark their player entry as 'out'?
+* add support for avatars
+

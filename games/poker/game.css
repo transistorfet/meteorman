@@ -4,10 +4,12 @@
 }
 
 #games-poker .card {
+  /*
   width: 32px;
   height: 48px;
   background-image: url("/games/war/cardset.gif");
-
+  */
+  
   display: inline-block;
   z-index: 10;
 }

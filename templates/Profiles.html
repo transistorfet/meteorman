@@ -1,14 +1,155 @@
 
 <template name="Profile">
 
-  <ul>
-    <li>{{username}}</li>
-    <li>{{profile.firstName}} {{profile.lastName}}</li>
-  </ul>
+  <div id="profile-view">
+    <div id="profile-settings-button">
+      {{#if isUserId _id}}
+        <a href="/settings">Edit</a>
+      {{else}}
+        {{#if isFriend _id}}
+          <span>Friend</span>
+        {{else}}
+          <button class="profile-add-friend" data-id="{{_id}}" type="button">Add Friend</button>
+        {{/if}}
+      {{/if}}
+    </div>
+
+    <div id="profile-header">
+      <h2>{{username}}</h2>
+      <div>{{profile.firstName}} {{profile.lastName}}</div>
+      <div>Joined: {{formatDate profile.createdAt}}</div>
+    </div>
+
+    <div class="profile-block">
+      {{> ProfileGamesList}}
+    </div>
+
+    <div class="profile-block">
+      {{> ProfileFriendsList}}
+    </div>
+
+    {{#if isUserId _id}}
+    <div class="profile-block">
+      {{> ProfileNotificationsList}}
+    </div>
+    {{/if}}
+
+  </div>
 
 </template>
 
-<template name="ProfileEdit">
+
+<template name="ProfileFriendsList">
+  <h4>Friends</h4>
+  <table>
+    {{#each listUserFriends}}
+      <tr><td><a href="/profile/{{_id}}">{{username}}</a></td><td><button class="profile-remove-friend" data-id="{{_id}}">Unfriend</button></td></tr>
+    {{else}}
+      <tr><td colspan="0">{{#if isUserId _id}}You don't have any friends yet{{else}}This user doesn't have any friends yet{{/if}}</td></tr>
+    {{/each}}
+  </table>
+</template>
+
+
+<template name="ProfileGamesList">
+  <h4>Games</h4>
+  <table>
+    {{#if listUserGames _id}}
+      <thead>
+        <tr><th></th><th>Created</th><th>Users</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+      {{#each listUserGames _id}}
+        <tr><td><a href="/play/{{_id}}">{{gametype}}-{{truncate _id 4}}</a></td><td>{{formatDate createdAt}}</td><td>{{users.length}}</td><td>{{#if started}}in progress{{else}}waiting{{/if}}</td></tr>
+      {{/each}}
+      </tbody>
+    {{else}}
+      <tr><td colspan="0">No current games</td></tr>
+    {{/if}}
+  </table>
+</template>
+
+
+<template name="ProfileNotificationsList">
+  <h4>Notifications</h4>
+  <table>
+    {{#each listMyNotifications}}
+      <tr>
+        <td>{{message}}</td><td>{{{action}}}</td><td><button class="profile-notification-dismiss" data-id="{{noteId}}">Dismiss</button></td>
+      </tr>
+    {{else}}
+      <tr><td colspan="0">You don't have any notifications</td></tr>
+    {{/each}}
+  </table>
+</template>
+
+
+<template name="ProfileSettings">
+
+  {{!--
+  <div id="profile-settings-nav" class="navbar">
+    <ul>
+      <li><a href="#" data-target="account">Account</a></li>
+      <li><a href="/settings/profile">Profile</a></li>
+      <li><a href="/settings/games">Games</a></li>
+    </ul>
+  </div>
+  --}}
+
+  <div id="profile-view">
+
+    <div class="settings">
+      <h3>Profile</h3>
+      <div class="settings-item">
+        <label>First Name</label>
+        <input name="firstName" type="text" value="{{profile.firstName}}" />
+      </div>
+      <div class="settings-item">
+        <label>Last Name</label>
+        <input name="lastName" type="text" value="{{profile.lastName}}" />
+      </div>
+      <div class="settings-item">
+        <label>Email</label>
+        <input name="email" type="text" value="{{emails.[0].address}}" />
+        <span>{{#if emails.[0].verified}}verified{{else}}<a href="#" class="settings-verify">verify</a>{{/if}}</span>
+      </div>
+    </div>
+
+    <div class="settings">
+      <h3>Change Password</h3>
+      <div class="settings-item">
+        <label>Old Password</label>
+        <input name="oldPassword" type="password" value="" />
+      </div>
+      <div class="settings-item">
+        <label>New Password</label>
+        <input name="newPassword" type="password" value="" />
+      </div>
+      <div class="settings-item">
+        <label>Retype Password</label>
+        <input name="retypePassword" type="password" value="" />
+      </div>
+      <button id="settings-change-pass" type="button">Change</button>
+    </div>
+
+    <div class="settings">
+      <h3>Game Settings</h3>
+      <div class="settings-item">
+        <label></label>
+        <input name="firstName" type="text" value="{{profile.firstName}}" />
+      </div>
+      <div class="settings-item">
+        <label>Last Name</label>
+        <input name="lastName" type="text" value="{{profile.lastName}}" />
+      </div>
+    </div>
+
+    <div class="settings">
+      <button id="settings-save" type="button">Save</button>
+      <button id="settings-cancel" type="button">Cancel</button>
+    </div>
+
+  </div>
 
 </template>
 

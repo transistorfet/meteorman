@@ -26,12 +26,15 @@ a:visited {
   color: #4B1559;
 }
 
+.right {
+  text-align: right;
+}
+
 .mini-note {
   font-size: 0.75em;
 }
 
 .alert {
-  background: #D09090;
   border: 1px solid #666;
   overflow: hidden;
   padding: 2px 4px 2px 4px;
@@ -43,88 +46,19 @@ a:visited {
   float: right;
 }
 
+.alert-error {
+  background: #D09090;
+}
+
+.alert-success {
+  background: #90D090;
+}
+
 #header-logo,
 #header-logo a {
   display: inline-block;
   color: #235915;
   text-decoration: none;
-}
-
-#side-nav {
-  float: left;
-  width: 145px;
-  margin-right: 5px;
-}
-
-#side-nav ul {
-  list-style-type: none;
-  margin: 0px;
-  padding: 0px;
-  overflow: auto;
-  background-color: #90D090;
-}
-
-#side-nav > ul {
-  width: 100%;
-}
-
-#side-nav li ul {
-    /* padding-left: 4px; */
-}
-
-#side-nav li a {
-  display: block;
-  text-decoration: none;
-  padding: 4px 6px 4px 6px;
-  color: black;
-}
-
-#side-nav li a:hover {
-  background: #235915;
-  color: white;
-}
-
-#side-nav li a:active {
-  background: #235915;
-}
-
-#side-nav.horizontal {
-  width: 100%;
-  margin-bottom: 6px;
-}
-
-#side-nav.horizontal > ul {
-  position: relative;
-  display: inline-table;
-}
-
-#side-nav.horizontal > ul:after {
-  content: "";
-  clear: both;
-  display: block;
-}
-
-#side-nav.horizontal > ul > * {
-  float: left;
-}
-
-#side-nav.horizontal ul ul {
-  display: none;
-
-  position: absolute;
-  top: 100%;
-}
-
-#side-nav.horizontal ul li:hover > ul {
-  display: block;
-}
-
-#side-nav.horizontal > ul > li > a {
-  text-align: center;
-}
-
-#side-nav-toggle {
-  
 }
 
 #user-nav {
@@ -160,6 +94,14 @@ a:visited {
   width: 100%;
 }
 
+#game-chat-input {
+  width: calc(100% - 8ex);
+}
+
+#game-chat button {
+  width: 6ex;
+}
+
 #game-logs {
   font-size: 0.8em;
   background-color: #DDDDDD;
@@ -167,13 +109,21 @@ a:visited {
   padding: 3px;
 
   overflow: auto;
-  height: 100%;
-  max-height: 50ex;
+  height: 15em;
 }
 
-#game-options {
+#game-controls {
   margin-top: 1em;
   margin-bottom: 1em;
+}
+
+#game-find th,
+#game-find td {
+  padding: 2px 2em 2px 2px;
+}
+
+#game-find td.right {
+  text-align: right;
 }
 
 .game-turn {
@@ -188,10 +138,6 @@ a:visited {
 
   #side-nav {
     /*display: block;*/
-  }
-
-  #side-nav-toggle {
-    /*display: none;*/
   }
 
   #content {
@@ -210,7 +156,7 @@ a:visited {
   }
 
   #game-logs {
-
+    height: 40em;
   }
 
 }

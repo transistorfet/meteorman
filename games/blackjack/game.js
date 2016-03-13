@@ -67,97 +67,140 @@ if (Meteor.isClient) {
 
 if (Meteor.isServer) {
 
-    var Game = Object.create({
-        init: function (self) {
+    Meteor.startup(function () {
+        GameLib.Types.add({
+            name: 'blackjack',
+            title: 'Blackjack',
+            template: 'Games_Blackjack',
+            methods: Game,
+            maxslots: 1,
+        });
+    });
+
+    var Game = {
+        init: function (userId) {
             console.log('init blackjack');
-            self.state.wins = 0;
-            self.state.losses = 0;
+            var state = this.state;
 
-            Game.startRound(self);
-
-            GameLib.updateState(self._id, self.state);
+            state.wins = 0;
+            state.losses = 0;
         },
 
-        finish: function (self) {
+        start: function (userId) {
+            this.startRound();
+            GameLib.updateState(this._id, this.state);
+        },
+
+        finish: function (userId) {
             console.log('finish blackjack');
         },
 
-        action: function (self, action, args) {
+        getPlayerView: function (userId) {
+            var state = this.state;
 
-            if (self.state.playing) {
+            var view = {
+                playing: state.playing,
+                player: state.player,
+                player_score: this.calculateScore(state.player),
+                wins: state.wins,
+                losses: state.losses,
+                message: state.message,
+            };
+
+            if (state.playing) {
+                view.dealer = [ state.dealer[0], 54 ];
+            }
+            else {
+                view.dealer = state.dealer;
+                view.dealer_score = this.calculateScore(state.dealer);
+            }
+
+            return view;
+        },
+
+        action: function (userId, action, args) {
+            var state = this.state;
+            console.log('action', userId, action, args);
+
+            if (state.playing) {
                 if (action == 'hit') {
-                    GameLib.log(self._id, "player requested a hit");
-                    self.state['player'].push(self.state['deck'].shift());
-                    var score = Game.calculateScore(self.state.player);
+                    GameLib.log(this._id, "player requested a hit");
+                    state.player.push(state.deck.shift());
+                    var score = this.calculateScore(state.player);
                     if (score > 21)
-                        Game.endRound(self);
+                        this.endRound();
                 }
                 else if (action == 'stay') {
-                    GameLib.log(self._id, "player requested to stay");
-                    Game.endRound(self);
+                    GameLib.log(this._id, "player requested to stay");
+                    this.endRound();
                 }
             }
             else {
                 if (action == 'next') {
-                    GameLib.log(self._id, "starting new round");
-                    Game.startRound(self);
+                    GameLib.log(this._id, "starting new round");
+                    this.startRound();
                 }
             }
 
-            GameLib.updateState(self._id, self.state);
+            GameLib.updateState(this._id, state);
         },
 
-        startRound: function (self) {
-            self.state['deck'] = Array(52).fill().map(function (current, index, array) { return index + 1; });
-            GameLib.shuffle(self.state['deck']);
+        startRound: function () {
+            var state = this.state;
 
-            self.state['dealer'] = [ ];
-            self.state['player'] = [ ];
+            state.deck = Array(52).fill().map(function (current, index, array) { return index + 1; });
+            GameUtils.shuffle(state.deck);
 
-            Game.dealCard(self, 'player');
-            Game.dealCard(self, 'dealer');
-            Game.dealCard(self, 'player');
-            Game.dealCard(self, 'dealer');
+            state.dealer = [ ];
+            state.player = [ ];
 
-            self.state.playing = true;
-            self.state.message = '';
+            this.dealCard('player');
+            this.dealCard('dealer');
+            this.dealCard('player');
+            this.dealCard('dealer');
+
+            state.playing = true;
+            state.message = '';
         },
 
-        endRound: function (self) {
-            self.state['playing'] = false;
+        endRound: function () {
+            var state = this.state;
 
-            var player_score = Game.calculateScore(self.state.player);
+            state.playing = false;
+
+            var player_score = this.calculateScore(state.player);
 
             var dealer_score;
             while (true) {
-                dealer_score = Game.calculateScore(self.state.dealer);
+                dealer_score = this.calculateScore(state.dealer);
                 if (player_score > 21 || dealer_score >= 17)
                     break;
-                Game.dealCard(self, 'dealer');
+                this.dealCard('dealer');
             }
 
             if (player_score > 21) {
-                self.state.losses += 1;
-                self.state.message = "Bust! Dealer Wins";
+                state.losses += 1;
+                state.message = "Bust! Dealer Wins";
             }
             else if (dealer_score > 21) {
-                self.state.wins += 1;
-                self.state.message = "Dealer Busts!  You Win";
+                state.wins += 1;
+                state.message = "Dealer Busts!  You Win";
             }
             else if (player_score > dealer_score) {
-                self.state.wins += 1;
-                self.state.message = "You Win!";
+                state.wins += 1;
+                state.message = "You Win!";
             }
             else {
-                self.state.losses += 1;
-                self.state.message = "Dealer Wins";
+                state.losses += 1;
+                state.message = "Dealer Wins";
             }
 
-            GameLib.log(self._id, self.state.message);
+            GameLib.log(this._id, state.message);
         },
 
-        dealCard: function (self, handname) {
-            self.state[handname].push(self.state['deck'].shift());
+        dealCard: function (handname) {
+            var state = this.state;
+            state[handname].push(state.deck.shift());
         },
 
         calculateScore: function (hand) {
@@ -182,35 +225,8 @@ if (Meteor.isServer) {
             return score;
         },
 
-        getPlayerView: function (self) {
-            var view = {
-                playing: self.state.playing,
-                player: self.state.player,
-                player_score: Game.calculateScore(self.state.player),
-                wins: self.state.wins,
-                losses: self.state.losses,
-                message: self.state.message,
-            };
+    };
 
-            if (self.state.playing) {
-                view.dealer = [ self.state.dealer[0], 54 ];
-            }
-            else {
-                view.dealer = self.state.dealer;
-                view.dealer_score = Game.calculateScore(self.state.dealer);
-            }
-
-            return view;
-        },
-    });
-
-    GameLib.Types.add({
-        name: 'blackjack',
-        title: 'Blackjack',
-        template: 'Games_Blackjack',
-        methods: Game,
-        maxslots: 1,
-    });
 }
 
 

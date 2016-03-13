@@ -1,14 +1,9 @@
 
-UserData = new Mongo.Collection('userdata');
+//UserData = new Mongo.Collection('userdata');
 
 if (Meteor.isClient) {
     Accounts.ui.config({
         passwordSignupFields: 'USERNAME_AND_EMAIL',
-    });
-
-    Router.route('/profile/:userId', function () {
-        var data = Meteor.users.findOne({ _id: this.params.userId });
-        this.render('Profile', { data: data });
     });
 }
 
@@ -35,9 +30,16 @@ if (Meteor.isServer) {
 
         user.profile.firstName = options.firstName;
         user.profile.lastName = options.lastName;
+        user.profile.createdAt = Date.now() / 1000;
+        user.profile.notifications = [ ];
         user.profile.friends = [ ];
 
         return user;
     });
+
+    Accounts.getUsername = function (userId) {
+        var user = Meteor.users.findOne({ _id: userId }, { fields: { username: 1 } });
+        return (user && user.username) ? user.username : 'unknown';
+    };
 }
 

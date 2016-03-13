@@ -2,34 +2,10 @@
 'use strict';
 
 if (Meteor.isClient) {
-    var TileInfo = {
-        'width': 32,
-        'height': 48,
-        'numx': 16,
-        'numy': 4
-    }
 
-    var updateCard = function (element, tile) {
-        if (tile !== undefined)
-            $(element).attr('data-card', tile);
-
-        var tile = $(element).attr('data-card');
-        var x = (tile % TileInfo.numx) * TileInfo.width;
-        var y = Math.floor(tile / TileInfo.numx) * TileInfo.height;
-        $(element).css('background-position', '-' + x + 'px -' + y + 'px');
-    }
-
-    Template.Games_Poker.onCreated(function () {
-        this.autorun(function () {
-            var reactive = Template.currentData();
-
-            Tracker.afterFlush(function () {
-                $('.card').each(function () {
-                    updateCard(this);
-                });
-            });
-        });
-    });
+    //Template.Games_Poker.onCreated(function () {
+    //    GraphicsLib.load('cardset');
+    //});
 
     Template.Games_Poker.events({
 
@@ -88,60 +64,114 @@ if (Meteor.isClient) {
 
 if (Meteor.isServer) {
 
-    var Game = Object.create({
-        init: function (self, userId) {
+    Meteor.startup(function () {
+        GameLib.Types.add({
+            name: 'poker',
+            title: 'Poker',
+            template: 'Games_Poker',
+            configTemplate: 'Games_Poker_Configure',
+            controlsTemplate: 'Games_Poker_Controls',
+            methods: Game,
+            minslots: 2,
+            maxslots: 6,
+            allowjoins: true,
+        });
+    });
+
+    var Game = {
+        init: function (userId) {
             console.log('init poker');
-            var state = self.state;
+            var state = this.state;
 
-            state.pot = 0;
-            state.first = 0;
-            state.players = [ ];
-            for (var i in self.options.slots) {
-                var slot = self.options.slots[i];
-                state.players[i] = {
-                    userId: slot.userId,
-                    name: slot.name,
-                    type: slot.type,
-                    chips: 100,
-                    portion: 0,
-                    folded: false,
-                    cards: [ ],
-                    message: '',
-                };
-            }
+            this._initGame();
 
-            Game._startRound(self);
-            console.log('init state', state);
-            GameLib.updateState(self._id, state);
+            for (var i in this.users)
+                this._addPlayer('person', userId, Accounts.getUsername(this.users[i]));
+
+            for (var i = 0; i < this.options.computers; i++)
+                this._addPlayer('computer', '', i < this.options.computerNames.length ? this.options.computerNames[i] : GameUtils.randomName());
+
+            GameUtils.shuffle(state.players);
+            GameLib.updateState(this._id, state);
         },
 
-        finish: function (self, userId) {
+        playerJoin: function (userId) {
+            var state = this.state;
+
+            var num = this._addPlayer('person', userId, Accounts.getUsername(userId));
+            GameLib.log(this._id, state.players[num].name + " joined the game.");
+
+            GameLib.updateState(this._id, state);
+            return true;
+        },
+
+        playerQuit: function (userId) {
+            var state = this.state;
+
+            var num = this._getPlayerNum(userId);
+            if (num) {
+                GameLib.log(this._id, state.players[num].name + " quit the game.");
+                if (state.turn == num)
+                    this._nextTurn();
+                state.players.splice(num, 1);
+                GameLib.updateState(this._id, state);
+            }
+            return true;
+        },
+
+        start: function (userId) {
+            console.log('starting poker');
+            //this._startRound();
+            this.$startRound();
+            GameLib.updateState(this._id, this.state);
+        },
+
+        finish: function (userId) {
             console.log('finish poker');
         },
 
-        getPlayerView: function (self, userId) {
-            var state = self.state;
+        action: function (userId, action, args) {
+            console.log('action', this.state, userId, action, args);
+            var self = this;
+            var state = this.state;
+
+            //if (this._doAction(userId, action, args))
+            //    GameLib.updateState(this._id, state);
+
+            if (Machines[this.options.pokerVariant].applyAction(this, userId, action, args)) {
+                var result = Machines[this.options.pokerVariant].applyRuns(this);
+                console.log('run result', result);
+                GameLib.updateState(this._id, state);
+            }
+
+            this._checkComputersTurn('', 1500);
+            return true;
+        },
+
+        getPlayerView: function (userId) {
+            var state = this.state;
 
             var view = {
                 betting: state.phase.indexOf('betting') >= 0,
                 trading: state.phase == 'trading',
-                roundover: state.phase == 'reveal',
+                roundover: state.phase == 'round-end',
                 turn: state.turn,
                 call: state.call - state.players[state.turn].portion,
                 pot: state.pot,
                 yourTurn: state.players[state.turn].userId == userId,
                 hands: [ ],
+                table: state.table != false ? state.table : null,
                 message: state.message,
             };
 
             for (var i in state.players) {
                 var player = state.players[i];
-                if (player.userId == userId || state.phase == 'reveal') {
+                if (player.userId == userId || state.phase == 'round-end') {
                     player.message = player.cards != false ? Game._scoreName(Game._calculateScore(player.cards)) : '';
-                    var cards = player.cards;
+                    var cards = player.cards != false ? player.cards : [ ];
                 }
                 else
-                    var cards = player.cards != false ? [ 54, 54, 54, 54, 54 ] : [ ];
+                    var cards = player.cards != false ? Array(player.cards.length).fill(CardUtils.backOfCard()) : [ ];
 
                 view.hands.push({
                     userId: player.userId,
@@ -156,43 +186,57 @@ if (Meteor.isServer) {
             return view;
         },
 
-        action: function (self, userId, action, args) {
-            console.log('action', self.state, userId, action, args);
-            var state = self.state;
+        _initGame: function () {
+            var state = this.state;
 
-            if (Game._doAction(self, userId, action, args))
-                GameLib.updateState(self._id, state);
-
-            // check if the computer should play the next round
-            if (state.players[state.turn].type == 'computer') {
-                Meteor.setTimeout(function () {
-                    Game._computersTurn(self, '');
-                }, 1500);
-                //Meteor.wrapAsync(Game._computersTurn, self);
-            }
-
-            return true;
+            state.pot = 0;
+            state.first = 0;
+            state.players = [ ];
         },
 
-        playerQuit: function (self, userId) {
-            var state = self.state;
-            var players = state.players;
-
-            for (var i = 0; i < players.length; i++) {
-                if (players[i].userId == userId) {
-                    GameLib.log(self._id, players[i].name + " quit the game.");
-                    if (state.turn == i)
-                        Game._nextTurn(self);
-                    players.splice(i, 1);
-                    GameLib.updateState(self._id, state);
-                    return true;
-                }
-            }
-            return true;
+        _addPlayer: function (type, userId, name) {
+            this.state.players.push({
+                type: type,
+                userId: userId,
+                name: name,
+                chips: 100,
+                portion: 0,
+                cards: [ ],
+                message: '',
+            });
+            return this.state.players.length - 1;
         },
 
-        _doAction: function (self, userId, action, args) {
-            var state = self.state;
+        _initRound: function () {
+            var state = this.state;
+
+            for (var j in state.players) {
+                state.players[j].portion = 0,
+                state.players[j].cards = [ ];
+                state.players[j].message = '';
+            }
+
+            state.call = 1;
+            state.table = [ ];
+            state.message = '';
+            state.first = this._nextPlayer(state.first);
+            state.turn = state.first;
+        },
+
+        $startRound: function () {
+            GameLib.log(this._id, "starting new round");
+
+            this._initRound();
+
+            this.state.phase = 'round-start';
+            Machines[this.options.pokerVariant].applyRuns(this);
+
+            this._checkComputersTurn('', 100);
+        },
+
+        /*
+        _doAction: function (userId, action, args) {
+            var state = this.state;
             var player = state.players[state.turn];
 
             // return if it's not your turn yet
@@ -200,8 +244,8 @@ if (Meteor.isServer) {
                 return false;
 
             // TODO i don't think this is supposed to happen, that it's your turn and you've folded...
-            if (player.folded && state.phase != 'reveal')
-                Game._nextTurn(self);
+            if (player.cards == false && state.phase != 'reveal')
+                this._nextTurn();
             else {
                 if (state.phase.indexOf('betting') >= 0) {
                     if (action == 'raise') {
@@ -209,7 +253,7 @@ if (Meteor.isServer) {
                         if(player.chips < state.call + raise - player.portion)
                             throw new Meteor.Error('poker-not-enough-chips');
 
-                        GameLib.log(self._id, player.name + " raised by ¤" + raise);
+                        GameLib.log(this._id, player.name + " raised by ¤" + raise);
                         state.call += raise;
                         var diff = state.call - player.portion;
                         player.portion = state.call;
@@ -221,38 +265,35 @@ if (Meteor.isServer) {
                         if (player.chips < diff)
                             throw new Meteor.Error('poker-not-enough-chips');
 
-                        GameLib.log(self._id, player.name + " called for ¤" + state.call);
+                        GameLib.log(this._id, player.name + " called for ¤" + state.call);
                         player.portion = state.call;
                         state.pot += diff;
                         player.chips -= diff;
                     }
                     else if (action == 'fold') {
-                        GameLib.log(self._id, player.name + " folds");
+                        GameLib.log(this._id, player.name + " folds");
                         player.cards = [ ];
-                        player.folded = true;
                     }
                     else
                         return false;
 
-                    Game._nextTurn(self);
+                    this._nextTurn();
                 }
                 else if (state.phase == 'trading') {
                     if (action == 'trade') {
-                        console.log(args);
-                        GameLib.log(self._id, player.name + " trades in " + ( args.length ? args.length + " cards" : "no cards" ) );
-                        Game._tradeCards(self, state.turn, args);
-                        Game._nextTurn(self);
+                        GameLib.log(this._id, player.name + " trades in " + ( args.length ? args.length + " cards" : "no cards" ) );
+                        this._tradeCards(state.turn, args);
+                        this._nextTurn();
                     }
                     else
                         return false;
                 }
                 else if (state.phase == 'reveal') {
                     if (action == 'ready') {
-                        var player = state.players[Game._getPlayerNum(self, userId)];
+                        var player = state.players[this._getPlayerNum(userId)];
                         player.cards = [ ];
-                        console.log(state.players.every(function (value) { console.log('every', value.type, value.cards); return value.type == 'computer' || value.cards == null; }));
                         if (state.players.every(function (value) { return value.type == 'computer' || value.cards; }))
-                            Game._startRound(self);
+                            this._startRound();
                     }
                     else
                         return false;
@@ -260,75 +301,46 @@ if (Meteor.isServer) {
             }
             return true;
         },
+        */
 
-        _computersTurn: function (self, userId) {
-            var state = self.state;
-            console.log('computers turn', state.players[state.turn]);
-            if (state.players[state.turn].type != 'computer')
-                return;
+        /*
+        _startRound: function () {
+            var state = this.state;
+            GameLib.log(this._id, "starting new round");
 
-            try {
-                if (state.phase.indexOf('betting') >= 0)
-                    Game.action(self, userId, 'call');
-                else if (state.phase == 'trading')
-                    Game.action(self, userId, 'trade', [ ]);
-                else
-                    Game._nextTurn(self);
-                    //Game.action(self, userId, 'ready');
-            }
-            catch (error) {
-                console.log("error during computer's turn", error);
-                Game.action(self, userId, 'fold');
-            }
-            GameLib.updateState(self._id, state);
-        },
+            this._initRound();
 
-        _startRound: function (self) {
-            var state = self.state;
-            GameLib.log(self._id, "starting new round");
-
-            state.deck = Array(52).fill().map(function (current, index, array) { return index + 1; });
-            GameLib.shuffle(state.deck);
-
-            var players = state.players;
-
-            for (var j in players) {
-                players[j].portion = 0,
-                players[j].folded = false;
-                players[j].cards = [ ];
-                players[j].message = '';
-            }
+            //state.deck = Array(52).fill().map(function (current, index, array) { return index + 1; });
+            //GameUtils.shuffle(state.deck);
+            state.deck = CardUtils.makeDeck({});
 
             for (var i = 0; i < 5; i++) {
                 for (var j in players)
-                    Game._dealCard(self, j);
+                    this._dealCard(j);
                 //players[j].cards.sort(function(a, b) { return (((b - 1) % 13) + 1) - (((a - 1) % 13) + 1); });
             }
 
             state.phase = 'betting1';
-            state.first = Game._nextPlayer(self, state.first);
+            state.first = this._nextPlayer(state.first);
             state.turn = state.first;
-            state.call = 1;
-            state.message = '';
-            GameLib.log(self._id, state.players[state.turn].name + " goes first");
 
-            // check if the computer should play the next round
-            if (state.players[state.turn].type == 'computer') {
-                Meteor.setTimeout(function () {
-                    Game._computersTurn(self, '');
-                }, 100);
-            }
+            GameLib.log(this._id, state.players[state.turn].name + " goes first");
+
+            this._checkComputersTurn('', 100);
         },
+        */
 
-        _endRound: function (self) {
-            var state = self.state;
+
+        /*
+        _endRound: function () {
+            var state = this.state;
             state.phase = 'reveal';
 
             var score, highest, winner;
             for (var i in state.players) {
-                if (!state.players[i].folded) {
-                    score = Game._calculateScore(state.players[i].cards);
-                    state.players[i].message = Game._scoreName(score);
+                if (state.players[i].cards != false) {
+                    score = this._calculateScore(state.players[i].cards);
+                    state.players[i].message = this._scoreName(score);
 
                     if (!highest || score[0] > highest[0] || (score[0] == highest[0] && score[1] > highest[1])) {
                         highest = score;
@@ -347,40 +359,41 @@ if (Meteor.isServer) {
                 state.pot = 0;
             }
 
-            GameLib.log(self._id, state.message);
-            GameLib.log(self._id, "round ended");
+            GameLib.log(this._id, state.message);
+            GameLib.log(this._id, "round ended");
 
             for (var i in state.players) {
                 if (state.players[i].chips <= 0) {
-                    GameLib.log(self._id, state.players[i].name + " is out of chips.");
+                    GameLib.log(this._id, state.players[i].name + " is out of chips.");
                     state.players.splice(i, 1);
                 }
             }
-            //GameLib.updateState(self._id, state);
         },
+        */
 
-        _nextTurn: function (self) {
-            var state = self.state;
+        /*
+        _nextTurn: function () {
+            var state = this.state;
             for (var i = state.turn + 1; ; i++) {
                 if (i >= state.players.length)
                     i = 0;
                 if (i == state.turn)
                     break;
                 if (i == state.first)
-                    Game._nextPhase(self);
-                if (!state.players[i].folded) {
+                    this._nextPhase();
+                if (state.players[i].cards != false) {
                     state.turn = i;
                     return;
                 }
             }
 
             console.log("everyone's out, next round?");
-            Game._endRound(self);
+            this._endRound();
         },
 
-        _nextPhase: function (self) {
-            var state = self.state;
-            if (state.phase.indexOf('betting') >= 0 && state.players.some(function (current) { return !current.folded && current.portion != state.call; }))
+        _nextPhase: function () {
+            var state = this.state;
+            if (state.phase.indexOf('betting') >= 0 && state.players.some(function (current) { return current.cards != false && current.portion != state.call; }))
                 return;
 
             if (state.phase == 'betting1')
@@ -391,21 +404,22 @@ if (Meteor.isServer) {
             }
             else if (state.phase == 'betting2') {
                 state.phase = 'reveal';
-                Game._endRound(self);
+                this._endRound();
             }
         },
+        */
 
-        _nextPlayer: function (self, current) {
+        _nextPlayer: function (current) {
             current += 1;
-            return (current < self.state.players.length) ? current : 0;
+            return (current < this.state.players.length) ? current : 0;
         },
 
-        _dealCard: function (self, playerNum) {
-            self.state.players[playerNum].cards.push(self.state.deck.shift());
+        _dealCard: function (playerNum) {
+            this.state.players[playerNum].cards.push(this.state.deck.shift());
         },
                     
-        _tradeCards: function (self, playerNum, cards) {
-            var hand = self.state.players[playerNum].cards;
+        _tradeCards: function (playerNum, cards) {
+            var hand = this.state.players[playerNum].cards;
 
             for (var i in cards) {
                 var index = hand.indexOf(parseInt(cards[i]));
@@ -415,22 +429,34 @@ if (Meteor.isServer) {
 
             var newCards = 5 - hand.length;
             for (var i = 0; i < newCards; i++)
-                Game._dealCard(self, playerNum);
+                this._dealCard(playerNum);
         },
 
-        _getPlayerNum: function (self, userId) {
-            for (var i in self.state.players) {
-                if (self.state.players[i].userId == userId)
+        _getPlayerNum: function (userId) {
+            for (var i in this.state.players) {
+                if (this.state.players[i].userId == userId)
                     return i;
             }
             return null;
         },
 
+        _bestPokerHand: function (cards) {
+            // TODO finish
+                score = this._calculateScore(state.players[i].cards);
+                state.players[i].message = this._scoreName(score);
+
+                if (!highest || score[0] > highest[0] || (score[0] == highest[0] && score[1] > highest[1])) {
+                    highest = score;
+                    winner = i;
+                }
+                else if (score[0] == highest[0] && score[1] == highest[1])
+                    winner = -1;
+        },
+
         _calculateScore: function (hand) {
             var cards = [ ];
             for (var i = 0; i < hand.length; i++) {
-                var suit = Math.floor((hand[i] - 1) / 13);
-                var rank = ((hand[i] - 1) % 13) + 1;
+                var [ rank, suit ] = CardUtils.rankAndSuit(hand[i]);
                 cards.push([ suit, rank != 1 ? rank : 14 ]);
             }
             cards.sort(function(a, b) { return b[1] - a[1]; });
@@ -470,23 +496,23 @@ if (Meteor.isServer) {
         _scoreName: function (score) {
             switch (score[0]) {
                 case 9:
-                    return 'a straight flush, ' + Game._cardName(score[1]) + ' high';
+                    return 'a straight flush, ' + this._cardName(score[1]) + ' high';
                 case 8:
-                    return 'four of a kind of ' + Game._cardName(score[1], true);
+                    return 'four of a kind of ' + this._cardName(score[1], true);
                 case 7:
-                    return 'a full house, ' + Game._cardName(score[1]) + ' high';
+                    return 'a full house, ' + this._cardName(score[1]) + ' high';
                 case 6:
-                    return 'a flush, ' + Game._cardName(score[1]) + ' high';
+                    return 'a flush, ' + this._cardName(score[1]) + ' high';
                 case 5:
-                    return 'a straight, ' + Game._cardName(score[1]) + ' high';
+                    return 'a straight, ' + this._cardName(score[1]) + ' high';
                 case 4:
-                    return 'three of a kind of ' + Game._cardName(score[1], true);
+                    return 'three of a kind of ' + this._cardName(score[1], true);
                 case 3:
-                    return 'two pairs, ' + Game._cardName(score[1]) + ' high';
+                    return 'two pairs, ' + this._cardName(score[1]) + ' high';
                 case 2:
-                    return 'a pair of ' + Game._cardName(score[1], true);
+                    return 'a pair of ' + this._cardName(score[1], true);
                 case 1:
-                    return 'high card, ' + Game._cardName(score[1]);
+                    return 'high card, ' + this._cardName(score[1]);
                 default:
                     return 'invalid hand type';
             }
@@ -532,18 +558,423 @@ if (Meteor.isServer) {
             return name;
         },
 
-    });
+        _checkComputersTurn: function (userId, delay) {
+            var self = this;
 
-    Meteor.startup(function () {
-        GameLib.Types.add({
-            name: 'poker',
-            title: 'Poker',
-            template: 'Games_Poker',
-            methods: Game,
-            minslots: 2,
-            maxslots: 4,
+            delay = delay ? delay : 100;
+            if (this.state.players[this.state.turn].type == 'computer') {
+                Meteor.setTimeout(function () {
+                    // in case something changed during the time delay, check who's turn it is again
+                    if (self.state.players[self.state.turn].type != 'computer')
+                        return;
+                    if (self._computersTurn('') !== false)
+                        GameLib.updateState(self._id, self.state);
+                }, delay);
+                //Meteor.wrapAsync(this._computersTurn, this);
+            }
+        },
+
+        _computersTurn: function (userId) {
+            var state = this.state;
+            console.log('computers turn', state.players[state.turn], state.phase);
+            if (state.players[state.turn].type != 'computer')
+                return;
+
+            try {
+                if (state.phase.indexOf('betting') >= 0)
+                    this.action(userId, 'call');
+                else if (state.phase == 'trading')
+                    this.action(userId, 'trade', [ ]);
+                else
+                    console.log('computer: sorry i think i broke it');
+                    //this._nextTurn();
+                    //this.action(self, userId, 'ready');
+            }
+            catch (error) {
+                console.log("error during computer's turn", error);
+                this.action(userId, 'fold');
+            }
+            GameLib.updateState(this._id, state);
+        },
+
+        $nextTurn: function () {
+            var state = this.state;
+
+            //if (state.phase.indexOf('betting') >= 0 && state.players.some(function (current) { return current.cards != false && current.portion != state.call; }))
+            //    return true;
+
+            console.log('changing turns', state.turn, state.first);
+            for (var i = state.turn + 1; ; i++) {
+                if (i >= state.players.length)
+                    i = 0;
+                if (i == state.turn)
+                    break;
+                if (i == state.first) {
+                    console.log('back to first');
+                    state.turn = i;
+                    return false;
+                }
+                if (state.players[i].cards != false) {
+                    state.turn = i;
+                    console.log('new players turn', state.turn);
+                    return true;
+                }
+            }
+
+            console.log("everyone's out, next round?");
+            //this._endRound();
+            this.state.phase = 'reveal';
+        },
+
+
+    };
+
+
+    Game.actions = {
+        'raise': function (userId, action, args) {
+            var state = this.state;
+            var player = state.players[state.turn];
+
+            var raise = parseInt(args);
+            if(player.chips < state.call + raise - player.portion)
+                throw new Meteor.Error('poker-not-enough-chips');
+
+            GameLib.log(this._id, player.name + " raised by ¤" + raise);
+            state.call += raise;
+            var diff = state.call - player.portion;
+            player.portion = state.call;
+            state.pot += diff;
+            player.chips -= diff;
+        },
+
+        'call': function (userId, action, args) {
+            var state = this.state;
+            var player = state.players[state.turn];
+
+            var diff = state.call - player.portion;
+            if (player.chips < diff)
+                throw new Meteor.Error('poker-not-enough-chips');
+
+            GameLib.log(this._id, player.name + " called for ¤" + state.call);
+            player.portion = state.call;
+            state.pot += diff;
+            player.chips -= diff;
+        },
+
+        'fold': function (userId, action, args) {
+            var state = this.state;
+            var player = state.players[state.turn];
+
+            GameLib.log(this._id, player.name + " folds");
+            player.cards = [ ];
+        },
+
+        'trade': function (userId, action, args) {
+            var state = this.state;
+            var player = state.players[state.turn];
+
+            GameLib.log(this._id, player.name + " trades in " + ( args.length ? args.length + " cards" : "no cards" ) );
+            this._tradeCards(state.turn, args);
+        },
+
+        Draw: {
+            '$deal': function () {
+                var state = this.state;
+
+                state.deck = CardUtils.makeDeck({});
+                for (var i = 0; i < 5; i++) {
+                    for (var j in state.players)
+                        this._dealCard(j);
+                    CardUtils.sortByRankAndSuit(state.players[j].cards);
+                }
+            },
+
+            '$endRound': function () {
+                var state = this.state;
+                state.phase = 'reveal';
+
+                var score, highest, winner;
+                for (var i in state.players) {
+                    if (state.players[i].cards != false) {
+                        score = this._calculateScore(state.players[i].cards);
+                        state.players[i].message = this._scoreName(score);
+
+                        if (!highest || score[0] > highest[0] || (score[0] == highest[0] && score[1] > highest[1])) {
+                            highest = score;
+                            winner = i;
+                        }
+                        else if (score[0] == highest[0] && score[1] == highest[1])
+                            winner = -1;
+                    }
+                }
+
+                if (winner == -1)
+                    state.message = "It's a tie.  Nobody wins this round";
+                else {
+                    state.message = state.players[winner].name + " won ¤" + state.pot + " with " + state.players[winner].message;
+                    state.players[winner].chips += state.pot;
+                    state.pot = 0;
+                }
+
+                GameLib.log(this._id, state.message);
+                GameLib.log(this._id, "round ended");
+
+                for (var i in state.players) {
+                    if (state.players[i].chips <= 0) {
+                        GameLib.log(this._id, state.players[i].name + " is out of chips.");
+                        state.players.splice(i, 1);
+                    }
+                }
+            },
+        },
+
+        HoldEm: {
+            '$deal': function () {
+                var state = this.state;
+
+                state.deck = CardUtils.makeDeck({});
+                for (var i = 0; i < 2; i++) {
+                    for (var j in state.players)
+                        this._dealCard(j);
+                    state.table.push(state.deck.shift());
+                    //players[j].cards.sort(function(a, b) { return (((b - 1) % 13) + 1) - (((a - 1) % 13) + 1); });
+                }
+            },
+
+            '$endRound': function () {
+                var state = this.state;
+                state.phase = 'reveal';
+
+                var score, highest, winner;
+                for (var i in state.players) {
+                    if (state.players[i].cards != false) {
+                        score = this._calculateScore(state.players[i].cards);
+                        state.players[i].message = this._scoreName(score);
+
+                        if (!highest || score[0] > highest[0] || (score[0] == highest[0] && score[1] > highest[1])) {
+                            highest = score;
+                            winner = i;
+                        }
+                        else if (score[0] == highest[0] && score[1] == highest[1])
+                            winner = -1;
+                    }
+                }
+
+                if (winner == -1)
+                    state.message = "It's a tie.  Nobody wins this round";
+                else {
+                    state.message = state.players[winner].name + " won ¤" + state.pot + " with " + state.players[winner].message;
+                    state.players[winner].chips += state.pot;
+                    state.pot = 0;
+                }
+
+                GameLib.log(this._id, state.message);
+                GameLib.log(this._id, "round ended");
+
+                for (var i in state.players) {
+                    if (state.players[i].chips <= 0) {
+                        GameLib.log(this._id, state.players[i].name + " is out of chips.");
+                        state.players.splice(i, 1);
+                    }
+                }
+            },
+        },
+    };
+
+
+    var Machines = { };
+
+    Machines.Draw = (function () {
+        var Machine = new StateMachine();
+
+        Machine.addHelper('isPlayersTurn', function (userId, action, args) {
+            if (this.state.players[this.state.turn].userId == userId)
+                return true;
+            return false;
         });
-    });
+
+
+        Machine.addRule({
+            condition: { phase: 'round-start' },
+            run: Game.actions.Draw.$deal,
+            success: function (result, argslist) {
+                var state = this.state;
+
+                state.phase = 'betting1';
+                //state.first = this._nextPlayer(state.first);
+                //state.turn = state.first;
+                GameLib.log(this._id, state.players[state.turn].name + " goes first");
+            },
+        });
+
+        Machine.addRule({
+            condition: { phase: /^betting\d$/, $isPlayersTurn: true },
+            actions: {
+                'call': Game.actions.call,
+                'raise': Game.actions.raise,
+                'fold': Game.actions.fold,
+            },
+            success: function (userId, action, args) {
+                var state = this.state;
+
+                //this._nextTurn();
+                if (this.$nextTurn() === false) {
+                    if (state.players.some(function (current) { return current.cards != false && current.portion != state.call; }))
+                        return true;
+
+                    if (this.state.phase == 'betting1')
+                        this.state.phase = 'trading';
+                    else
+                        this.state.phase = 'reveal';
+                }
+            },
+        });
+
+        Machine.addRule({
+            condition: { phase: 'trading', $isPlayersTurn: true },
+            actions: { 'trade': Game.actions.trade },
+            success: function (userId, action, args) {
+                //this._nextTurn();
+                if (this.$nextTurn() === false) {
+                    this.state.call += 1;
+                    this.state.phase = 'betting2';
+                }
+            },
+        });
+
+        Machine.addRule({
+            condition: { phase: 'reveal' },
+            run: Game.actions.Draw.$endRound,
+            success: function (result, argslist) {
+                this.state.phase = 'round-end';
+            },
+        });
+
+        Machine.addRule({
+            condition: { phase: 'round-end' },
+            actions: { 'ready': function (userId, action, args) {
+                    var player = this.state.players[this._getPlayerNum(userId)];
+                    player.cards = [ ];
+                },
+            },
+            success: function () {
+                if (this.state.players.every(function (value) { return value.type == 'computer' || value.cards == false; }))
+                    this.$startRound();
+            },
+        });
+
+        return Machine;
+    })();
+
+
+    Machines.HoldEm = (function () {
+        var Machine = new StateMachine();
+
+        Machine.addHelper('isPlayersTurn', function (userId, action, args) {
+            if (this.state.players[this.state.turn].userId == userId)
+                return true;
+            return false;
+        });
+
+        /*
+        Machine.addRule({
+            condition: { phase: 'deal' },
+            run: function () {
+                // do all the dealings stuff
+                Game.steps.deal();
+                this.state.turn = 0;
+                this.state.phase = 'draw'
+            },
+        });
+        */
+
+        Machine.addRule({
+            condition: { phase: 'round-start' },
+            run: Game.actions.HoldEm.$deal,
+            success: function (result, argslist) {
+                var state = this.state;
+
+                state.phase = 'betting1';
+                //state.first = this._nextPlayer(state.first);
+                //state.turn = state.first;
+                GameLib.log(this._id, state.players[state.turn].name + " goes first");
+            },
+        });
+
+        Machine.addRule({
+            condition: { phase: /^betting\d$/, $isPlayersTurn: true },
+            actions: {
+                'call': Game.actions.call,
+                'raise': Game.actions.raise,
+                'fold': Game.actions.fold,
+                //'$flop': Game.actions.flop,   // then this wolud deal the card and put it into the next betting phase?  The use of the success function seems appropriate, but since this is
+                                                // a different transition ($flop -> betting(n+1) instead of betting(n) -> $flop), it should have it's own rule
+            },
+            success: function (result, argslist) {
+                var state = this.state;
+
+                if (this.$nextTurn() === false) {
+                    if (state.players.some(function (current) { return current.cards != false && current.portion != state.call; }))
+                        return true;
+
+                    if (this.state.phase == 'betting4')
+                        this.state.phase = 'reveal';
+                    else {
+                        this.state.phase = this.state.phase.replace('betting', 'flop');
+                        //Machine.applyAction(this, '', '$flop');
+                        //Game.actions.$flop.apply(this)    // this method doesn't allow you to store the transition code in the success function, so the flop would do the action + transition
+                    }
+                }
+                console.log('done betting', this.state.phase);
+            },
+        });
+
+        Game.actions.$flop = function (userId, action, args) {
+            this.state.table.push(this.state.deck.shift());
+            console.log('flop', this.state.table);
+        };
+
+        // TODO this is an alternative to the flop, with an action action dispatch to this rule... i guess the bizzare thing is that the betting rule is directly referring to this rule, but indirectly
+        Machine.addRule({
+            condition: { phase: /^flop\d$/ },
+            /* actions: { '$flop': Game.actions.$flop }, */
+            run: Game.actions.$flop,
+            success: function (result, argslist) {
+                this.state.phase = 'betting' + (parseInt(this.state.phase.replace('flop', '')) + 1);
+                this.state.call += 1;
+                console.log('flop done', this.state.phase);
+            },
+        });
+
+        Machine.addRule({
+            condition: { phase: 'reveal' },
+            run: Game.actions.HoldEm.$endRound,
+            success: function (result, argslist) {
+                this.state.phase = 'round-end';
+            },
+        });
+
+        Machine.addRule({
+            condition: { phase: 'round-end' },
+            actions: {
+                'ready': function (userId, action, args) {
+                    var player = this.state.players[this._getPlayerNum(userId)];
+                    player.cards = [ ];
+                },
+            },
+            success: function (result, argslist) {
+                if (this.state.players.every(function (value) { return value.type == 'computer' || value.cards == false; }))
+                    this.$startRound();
+                    //this.state.phase = 'deal';  // TODO and then it would try applying rules again, and hit the 'deal' rule which deals the cards and starts the game
+                    // an alternative would be to asyncronously dispatch the 'deal' action??
+                    //Machine.applyAction(this, '', '$start');
+                    //Game.actions.$start.apply(this);
+            },
+        });
+
+        return Machine;
+    })();
+
 }
 
 

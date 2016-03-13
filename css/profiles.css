@@ -1,0 +1,77 @@
+
+#profile-view {
+  color: #222222;
+  background-color: #DDDDDD;
+  border: 1px solid black;
+  border-radius: 0.5em;
+  padding: 1em 10px;
+}
+
+#profile-settings-nav {
+  color: #DDDDDD;
+  background-color: #666666;
+  border-radius: 0.5em;
+  width: 24%;
+  float: left;
+
+  font-size: 16px;
+}
+
+#profile-settings-nav a {
+  padding: 4px 0.5em;
+}
+
+#profile-view h2,
+#profile-view h3,
+#profile-view h4,
+#profile-view h5 {
+  margin: 4px 0px;
+}
+
+#profile-header {
+  margin-bottom: 1em;
+}
+
+.profile-block {
+  margin-bottom: 1em;
+}
+
+.profile-block table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.profile-block th {
+  text-align: left;
+}
+
+.profile-block td {
+  padding: 2px 4px;
+}
+
+@media screen and (min-width: 500px) {
+  .profile-block table {
+    width: 500px;
+  }
+}
+
+
+#profile-settings-button {
+  display: inline-block;
+  float: right;
+}
+
+.settings:not(:first-child) {
+  margin-top: 1.5em;
+}
+
+.settings-item {
+  margin-bottom: 4px;
+}
+
+.settings-item label {
+  display: inline-block;
+  width: 10em;
+}
+
+

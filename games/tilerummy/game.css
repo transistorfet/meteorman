@@ -1,0 +1,84 @@
+
+#games-tilerummy {
+  margin-bottom: 20em;
+}
+
+#games-tilerummy h5 {
+  margin-bottom: 4px;
+}
+
+#games-tilerummy .tile {
+  display: inline-block;
+  z-index: 10;
+  width: 36px;
+  height: 48px;
+  background: #FFFFC8;
+  color: #5080E0;
+  font-weight: bold;
+  font-size: 28px;
+  text-align: center;
+  vertical-align: middle;
+  padding: 4px;
+  border-radius: 8px;
+  border-right: 2px solid #8F8F68;
+  border-bottom: 2px solid #8F8F68;
+  margin-bottom: 4px;
+}
+
+#games-tilerummy .tile.selected {
+  background: rgba(255, 0, 0, 0.25);
+}
+
+#games-tilerummy .tiles-melds .tile,
+#games-tilerummy .your-hand .tile {
+  cursor: pointer;
+}
+
+#games-tilerummy .tile.move {
+  background: rgba(255, 0, 0);
+  position: absolute;
+  z-index: 1000;
+}
+
+#games-tilerummy .tiles-meld {
+  display: inline-block;
+  margin-right: 2em;
+  margin-bottom: 1em;
+}
+
+#games-tilerummy .tiles-meld.invalid {
+  padding: 4px;
+  background: #A02020;
+}
+
+#games-tilerummy .tiles-meld.new .tile {
+  font-size: 14px;
+  color: #AAAAAA;
+  opacity: 0.5;
+}
+
+#games-tilerummy .tiles-hand {
+  display: inline-block;
+}
+
+#games-tilerummy #game-message {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+#games-tilerummy input[type="number"] {
+  width: 3em;
+}
+
+#games-tilerummy .player-tiles.your-hand {
+  position: fixed;
+  z-index: 100;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  border-top: 1px solid black;
+  background-color: #907050;
+  /*background-color: #C0F0C0;*/
+}
+

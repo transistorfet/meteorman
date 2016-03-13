@@ -1,4 +1,29 @@
 
+
+<template name="GameNavLinks">
+  {{#with currentUser}}
+    <li><a href="#">My Games</a>
+      <ul>
+      {{#each listMyGames}}
+        <li><a href="/play/{{_id}}">{{gametype}}-{{truncate _id 4}}</a></li>
+      {{else}}
+        <li><a href="#">(none)</a></li>
+      {{/each}}
+      </ul>
+    </li>
+    <li><a href="#">New Game</a>
+      <ul>
+      {{#each listGameTypes}}
+        <li><a href="/play/new/{{name}}">{{title}}</a></li>
+      {{/each}}
+      </ul>
+    </li>
+    <li><a href="/play/find">Find Game</a></li>
+    <li><a href="/profile/{{_id}}">Profile</a></li>
+  {{/with}}
+</template>
+ 
+
 <template name="GameSelectType">
   {{#if currentGameList}}
     <p>You are playing the following games:</p>
@@ -13,6 +38,7 @@
   {{/if}}
 </template>
 
+
 <template name="GameConfigure">
   <h4>Starting New Game</h4>
 
@@ -20,7 +46,8 @@
     <ul>
     <li data-slot="1">Player 1: You</li>
     {{#each slot in slotsList}}
-      <li data-slot="{{slot.num}}">Player {{slot.num}}:
+      <li data-slot="{{slot.num}}">
+        <label>Player {{slot.num}}</label>
         <select name="type">
           <option value="empty">(empty)</option>
           <option value="computer">Computer</option>
@@ -35,14 +62,27 @@
       </li>
     {{/each}}
     </ul>
+
+    <datalist id="friends">
+      <option value="testfriend">testfriend</option>
+      {{#each friend in user.profile.friends}}
+        <option value="{{friend}}">{{friend}}</option>
+      {{/each}}
+    </datalist>
   </div>
 
-  <datalist id="friends">
-    <option value="testfriend">testfriend</option>
-    {{#each friend in user.profile.friends}}
-      <option value="{{friend}}">{{friend}}</option>
-    {{/each}}
-  </datalist>
+  {{#if allowjoins}}
+  <div>
+    <label>Wait For Everyone?</label>
+    <input type="checkbox" name="waitall" value="1" checked />
+  </div>
+  {{/if}}
+
+  <div>
+    <label>Allow Spectators</label>
+    <input type="checkbox" name="allowspectators" value="1" />
+  </div>
+
 
   {{#if configTemplate}}
     <div id="game-extended-options">
@@ -51,29 +91,36 @@
   {{/if}}
 
   <button id="game-begin">Begin</button>
-
 </template>
 
 
 <template name="GameFind">
-  <table>
-    <thead>
-      <tr>
-        <th>Game Type</th>
-        <th>Slots</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-    {{#each game in list}}
-      <tr>
-        <td>{{game.gametype}}</td>
-        <td>{{game.options.slots.length}}</td>
-        <td><button class="game-join" type="button" data-id="{{game._id}}">Join</button></td>
-      </tr>
-    {{/each}}
-    </tbody>
-  </table>
+  <div id="game-find">
+    <table>
+      <thead>
+        <tr>
+          <th>Game</th>
+          <th>Open</th>
+          <th>Players<br/>(Computers)</th>
+          <th>Max</th>
+          <th>Join</th>
+        </tr>
+      </thead>
+      <tbody>
+      {{#each game in list}}
+        <tr>
+          <td>{{game.gametype}}-{{truncate game._id 4}}</td>
+          <td class="right">{{openSlots game}}</td>
+          <td class="right">{{fullSlots game}} ({{game.options.computers}})</td>
+          <td class="right">{{game.options.maxslots}}</td>
+          <td><button class="game-join" type="button" data-id="{{game._id}}">Join</button></td>
+        </tr>
+      {{else}}
+        <tr><td colspan="0">There are no games looking for players. Try starting a new game.</td></tr>
+      {{/each}}
+      </tbody>
+    </table>
+  </div>
 </template>
 
 
@@ -126,16 +173,26 @@
     </div>
 
     <div id="game-panel">
+
+      {{> GameWidget_PlayersList data}}
+
       <div id="game-logs">
         {{#each line in data.logs}}
           {{line}}<br/>
         {{/each}}
-        <!-- <input id="game-chat-input" type="text" /> -->
       </div>
       {{scrollLogs}}
 
-      <div id="game-options">
-        {{> GameOptions }}
+      <div id="game-chat">
+        <input id="game-chat-input" type="text" /><button type="button">Chat</button>
+      </div>
+
+      <div id="game-controls">
+        {{data.gameinfo}}
+        {{#if data.controlsTemplate}}
+          {{> Template.dynamic template=data.controlsTemplate}}
+        {{/if}}
+        {{> GameControls }}
       </div>
     </div>
 
@@ -143,34 +200,28 @@
 </template>
 
 
-<template name="GameOptions">
-  <div id="game-options">
-    <!-- <button id="game-options-new">New Game</button> -->
-    <button id="game-options-quit">Quit Game</button>
-  </div>
+<template name="GameControls">
+  <!-- <button id="game-controls-new">New Game</button> -->
+  <button id="game-controls-quit">Quit Game</button>
 </template>
 
 
-<template name="GameNavLinks">
-  {{#with currentUser}}
-    <li><a href="#">My Games</a>
-      <ul>
-      {{#each myGameList}}
-        <li><a href="/play/{{_id}}">{{gametype}}-{{truncate _id 4}}</a></li>
+<template name="GameWidget_PlayersList">
+  <table id="game-players-list">
+  {{#each slot in options.slots}}
+    <tr>
+      <td>{{slot.slot}}:</td>
+      {{#if slot.userId}}
+        <td><a href="/profile/{{slot.userId}}">{{slot.name}}</a></td>
       {{else}}
-        <li><a href="#">(none)</a></li>
-      {{/each}}
-      </ul>
-    </li>
-    <li><a href="#">New Game</a>
-      <ul>
-      {{#each gameTypeList}}
-        <li><a href="/play/new/{{name}}">{{title}}</a></li>
-      {{/each}}
-      </ul>
-    </li>
-    <li><a href="/play/find">Find Game</a></li>
-    <li><a href="/profile/{{_id}}">Profile</a></li>
-  {{/with}}
+        {{#if slot.name}}
+          <td>{{slot.name}} {{#if equals slot.type 'computer'}}(computer){{/if}}</td>
+        {{else}}
+          <td>(empty)</td>
+        {{/if}}
+      {{/if}}
+    </tr>
+  {{/each}}
+  </table>
 </template>
- 
+

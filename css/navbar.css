@@ -1,0 +1,92 @@
+
+
+.navbar {
+  float: left;
+  width: 145px;
+  margin-right: 5px;
+}
+
+.navbar.horizontal {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+
+.navbar li a {
+  display: block;
+  text-decoration: none;
+  padding: 4px 6px 4px 6px;
+  color: black;
+  background-color: #90D090;
+}
+
+.navbar li a:hover {
+  background-color: #235915;
+  color: white;
+}
+
+.navbar li a:active {
+  background-color: #235915;
+}
+
+.navbar.horizontal > ul > li > a {
+  text-align: center;
+}
+
+
+.navbar ul {
+  display: inline-table;
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+  z-index: 100;
+  background-color: #90D090;
+}
+
+.navbar > ul {
+  width: 100%;
+}
+
+.navbar > ul:after {
+  content: "";
+  clear: both;
+  display: block;
+}
+
+.navbar ul > li {
+  position: relative;
+}
+
+.navbar ul ul {
+  display: none;
+  position: absolute;
+  top: 0%;
+  left: 100%;
+}
+
+.navbar ul li:hover > ul {
+  display: block;
+}
+
+.navbar.horizontal > ul > * {
+  float: left;
+}
+
+.navbar.horizontal > ul > li > ul {
+  top: 100%;
+  left: 0%;
+}
+
+#user-nav {
+  float: right;
+}
+
+
+@media screen and (min-width: 1000px) {
+  .navbar {
+    /*display: block;*/
+  }
+}
+
+
+

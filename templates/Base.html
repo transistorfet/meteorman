@@ -14,11 +14,13 @@
     </div>
 
     <div id="user-nav">
+      {{! <span class="user-notifications">&#9993;</span> }}
+
       {{> loginButtons }}
     </div>
   </div>
 
-  <div id="side-nav" class="horizontal">
+  <div id="side-nav" class="navbar horizontal">
     <ul>
       <!-- <li><a href="/">Home</a></li> -->
       {{> GameNavLinks }}
@@ -28,21 +30,7 @@
   <div id="content">
     {{> flashMessages}}
 
-    <!--
-    {% if messages %}
-    <div>
-      <strong>Messages:</strong>
-      <ul>
-        {% for message in messages %}
-        <li>{{message}}</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-    -->
-
     {{> yield}}
-
   </div>
 </template>
 

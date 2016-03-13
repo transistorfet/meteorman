@@ -1,20 +1,22 @@
 
+<template name="Games_Poker_Configure">
+  <div>
+    <label>Variant</label>
+    <select name="pokerVariant">
+      <option value="Draw">Draw</option>
+      <option value="HoldEm">HoldEm</option>
+    </select>
+  </div>
+</template>
+
+
 <template name="Games_Poker">
 
-  <div id="games-poker">
-    <!--
-    <div id="players-cards">
-      <h5>You</h5>
-      <div class="cards-hand">
-      {{#each card in view.hand}}
-        <div class="card" data-card="{{card}}"></div>
-      {{/each}}
-      </div>
-    </div>
-    -->
+  {{useGraphicsSet 'cardset'}}
 
+  <div id="games-poker">
     {{#each hand in getHands}}
-      <div class="player-cards {{#if hand.isHandsTurn}}game-turn{{/if}}" {{attributeUserId userId}}>
+      <div class="player-cards {{#if hand.isHandsTurn}}game-turn{{/if}}">
         <h5>{{hand.name}} - ¤{{hand.chips}} {{#if hand.isHandsTurn}}*{{/if}}</h5>
         <div class="cards-hand">
         {{#each card in hand.cards}}
@@ -45,10 +47,24 @@
       </div>
     {{/each}}
 
+    {{#if view.table}}
+      <h5>Table</h5>
+      <div class="table-hand">
+      {{#each card in view.table}}
+        <div class="card" data-card="{{card}}"></div>
+      {{/each}}
+      </div>
+    {{/if}}
+
     <div id="game-info">Pot: ¤{{view.pot}}</div>
     <div id="game-message">{{view.message}}</div>
 
   </div>
 
+</template>
+
+
+<template name="Games_Poker_Controls">
+  {{> GraphicsLibOptions type='cardset'}}
 </template>
 
