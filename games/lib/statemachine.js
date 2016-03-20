@@ -36,7 +36,7 @@ if (Meteor.isServer) {
                     return false;
                 }
 
-                console.log('applying rule', rule);
+                console.log('applying run rule', rule);
                 var result = rule.run.apply(object, argslist);
 
                 if (this.checkResult(rule, result, object, argslist) == false) {
@@ -62,7 +62,6 @@ if (Meteor.isServer) {
                     continue;
 
                 // we are still here, so the conditions matched
-                console.log('applying rule', rule);
                 // TODO this isn't right... if we are doing an action, then we shouldn't just run a rule (unless we later loop until we find an action or fail)
                 //if ('run' in rule) {
                 //    var result = rule.run.apply(object, argslist);
@@ -70,6 +69,7 @@ if (Meteor.isServer) {
                 if ('actions' in rule) {
                     if (!(action in rule.actions))
                         continue;
+                    console.log('applying action rule', rule);
                     var result = rule.actions[action].apply(object, argslist);
                 }
                 else

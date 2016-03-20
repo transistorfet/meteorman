@@ -295,7 +295,7 @@ if (Meteor.isServer) {
             if (num) {
                 GameLib.log(this._id, state.players[num].name + " quit the game.");
                 if (state.turn == num)
-                    this._nextTurn();
+                    this.actions.$nextturn.apply(this);
                 state.players.splice(num, 1);
                 GameLib.updateState(this._id, state);
             }
@@ -316,8 +316,10 @@ if (Meteor.isServer) {
             console.log('action', this.state, userId, action, argslist);
             var state = this.state;
 
-            if (Machine.applyAction(this, userId, action, argslist))
+            if (Machine.applyAction(this, userId, action, argslist)) {
+                Machine.applyRuns(this);
                 GameLib.updateState(this._id, state);
+            }
 
             this._checkComputersTurn('', 1500);
             return true;
@@ -440,27 +442,7 @@ if (Meteor.isServer) {
                 state.message = "Nobody wins this round.";
         },
 
-        _nextTurn: function () {
-            var state = this.state;
-            for (var i = state.turn + 1; ; i++) {
-                if (i >= state.players.length)
-                    i = 0;
-                if (i == state.turn)
-                    break;
-                if (state.players[i].cards != false) {
-                    state.players[state.turn].hasPlayed = false;
-                    state.turn = i;
-                    state.phase = 'meld';
-                    state.meldsBackup = state.melds;
-                    state.handBackup = state.players[state.turn].cards;
-                    console.log('handbackup', state.handBackup);
-                    return;
-                }
-            }
 
-            console.log("everyone's out, next round?");
-            this._endRound();
-        },
 
         _nextPlayer: function (current) {
             current += 1;
@@ -501,6 +483,7 @@ if (Meteor.isServer) {
             console.log('computers turn', state.players[state.turn]);
 
             try {
+                /*
                 if (state.phase.indexOf('betting') >= 0)
                     gameobj.action(userId, 'call');
                 else if (state.phase == 'trading')
@@ -508,6 +491,8 @@ if (Meteor.isServer) {
                 else
                     gameobj._nextTurn();
                     //this.action(self, userId, 'ready');
+                */
+                gameobj.actions.$nextturn.apply(gameobj);
             }
             catch (error) {
                 console.log("error during computer's turn", error);
@@ -667,6 +652,31 @@ if (Meteor.isServer) {
             }
             return true;
         },
+
+        '$nextturn': function () {
+            var state = this.state;
+            if (state.players[state.turn].cards.length <= 0 || state.deck.length <= 0)
+                this._endRound();
+
+            for (var i = state.turn + 1; ; i++) {
+                if (i >= state.players.length)
+                    i = 0;
+                if (i == state.turn)
+                    break;
+                if (state.players[i].cards != false) {
+                    state.players[state.turn].hasPlayed = false;
+                    state.turn = i;
+                    state.phase = 'meld';
+                    state.meldsBackup = state.melds;
+                    state.handBackup = state.players[state.turn].cards;
+                    console.log('handbackup', state.handBackup);
+                    return;
+                }
+            }
+
+            console.log("everyone's out, next round?");
+            this._endRound();
+        },
     }
 
 
@@ -715,6 +725,8 @@ if (Meteor.isServer) {
         },
         success: function (result, argslist) {
             if (argslist[1] == 'draw' || argslist[1] == 'endturn') {
+                this.state.phase = 'next-turn';
+    /*
                 var state = this.state;
                 var player = state.players[state.turn];
 
@@ -723,25 +735,18 @@ if (Meteor.isServer) {
                 else {
                     this._nextTurn();
                 }
+    */
             }
         },
     });
 
-    /*
     Machine.addRule({
         condition: { phase: 'next-turn' },
-        run: function () {
-            if (player.cards.length <= 0 || state.deck.length <= 0)
-                this._endRound();
-            else {
-                this._nextTurn();
-            }
-        },
+        run: Game.actions.$nextturn,
         success: function () {
             this.state.phase = 'meld';
         },
     });
-    */
 
     Machine.addRule({
         condition: { phase: 'round-over' },
