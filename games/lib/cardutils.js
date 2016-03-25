@@ -4,6 +4,8 @@
 var Global = Meteor.isClient ? window : global;
 
 Global.CardUtils = Object.assign(Global.CardUtils || {}, {
+    Joker: 53,
+
     rankAndSuit: function (card) {
         var suit = Math.floor((card - 1) / 13);
         var rank = ((card - 1) % 13) + 1;
@@ -11,11 +13,21 @@ Global.CardUtils = Object.assign(Global.CardUtils || {}, {
     },
 
     rank: function (card) {
+        if (CardUtils.isNotCard(card))
+            return card;
         return ((card - 1) % 13) + 1;
     },
 
     suit: function (card) {
         return Math.floor((card - 1) / 13);
+    },
+
+    isNotCard: function (card) {
+        return (card >= 1 && card <= 53) ? false : true;
+    },
+
+    isJoker: function (card) {
+        return (card == 53);
     },
 });
 
@@ -40,7 +52,7 @@ if (Meteor.isServer) {
 
             // TODO should there be different jokers?  Should there be a number for each colour joker, or a number for each joker (if more than 2)
             if (options.jokers > 0)
-                deck.concat(Array(options.jokers).fill(53));
+                deck = deck.concat(Array(options.jokers).fill(53));
 
             if (options.shuffle)
                 GameUtils.shuffle(deck);
@@ -71,7 +83,6 @@ if (Meteor.isServer) {
         suit: function (card) {
             return Math.floor((card - 1) / 13);
         },
-        */
 
         isNotCard: function (card) {
             return (card >= 1 && card <= 53) ? false : true;
@@ -80,6 +91,7 @@ if (Meteor.isServer) {
         isJoker: function (card) {
             return (card == 53);
         },
+        */
 
         isFaceCard: function (card) {
 

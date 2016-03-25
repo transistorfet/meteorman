@@ -1,8 +1,12 @@
 
 <template name="Games_TileRummy_Configure">
-  <div>
-    <label>See Melds</label>
-    <input type="checkbox" name="seeMelds" value="1" />
+  <div class="game-config-setting">
+    <label>Initial Points Required</label>
+    <select name="requiredFirstDown">
+      <option value="25">25 Points</option>
+      <option value="30">30 Points</option>
+      <option value="50">50 Points</option>
+    </select>
   </div>
 </template>
 
@@ -10,65 +14,6 @@
 <template name="Games_TileRummy">
 
   <div id="games-tilerummy">
-    {{#each hand in getHands}}
-      <div class="player-tiles {{#if hand.isHandsTurn}}game-turn{{/if}} {{#if isYourHand hand}}your-hand{{/if}}">
-        <h5>{{hand.name}} - {{hand.score}} {{#if hand.isHandsTurn}}*{{/if}}</h5>
-
-        <div class="tiles-hand {{#if isYourHand hand}}your-hand{{/if}}" data-meld="-1">
-        {{#each tile in hand.cards}}<div class="tile" data-tile="{{tile}}" style="{{tileStyle tile}}">{{tileRank tile}}</div>{{/each}}
-        </div>
-
-        <div id="game-hand-message">{{hand.message}}</div>
-
-        {{#if isYourHand hand}}
-          <div class="local-controls">
-          {{#unless inSelectMode}}
-            {{#if hand.isHandsTurn}}
-              {{#if view.meld_phase}}
-                <span>Play tiles{{#unless hand.hasPlayed}}, or pick up a tile{{/unless}}</span><br/>
-              {{/if}}
-            {{/if}}
-
-            {{!--
-            <button id="organize">Organize</button>
-            --}}
-            <button id="sort">Sort</button>
-
-            {{#if hand.isHandsTurn}}
-              {{!--
-              {{#if view.meld_phase}}
-                <button id="meld">Meld</button>
-                <button id="layoff">Lay Off</button>
-              {{/if}}
-              --}}
-
-              {{#if hand.hasPlayed}}
-                <button id="endturn">End Turn</button>
-              {{else}}
-                <button id="draw">Pick Up</button>
-              {{/if}}
-            {{/if}}
-
-          {{else}}
-            <button id="done">Done</button>
-          {{/unless}}
-
-          {{#if view.roundover}}
-            <button id="ready">Ready for Next Round</button>
-          {{/if}}
-          </div>
-        {{/if}}
-      </div>
-    {{/each}}
-
-    <div id="game-message">{{view.message}}</div>
-
-    {{!--
-    <h5>Pick Up</h5>
-    <div id="discard-pile">
-      <div class="tile" data-tile="54"></div>
-    </div>
-    --}}
 
     <h5>Melds</h5>
     <div class="tiles-melds">
@@ -84,6 +29,50 @@
       <button id="reset">Reset</button>
     {{/if}}
     </div>
+
+    <div id="game-message">{{view.message}}</div>
+
+    {{#each hand in getHands}}
+      <div class="player-tiles {{#if hand.isHandsTurn}}game-turn{{/if}} {{#if isYourHand hand}}your-hand{{/if}}">
+        <h5>{{hand.name}} - {{hand.score}} {{#if hand.isHandsTurn}}*{{/if}}</h5>
+
+        {{#if isYourHand hand}}
+          <div class="player-tiles-rack {{#if isYourHand hand}}your-hand{{/if}}">
+            <input type="checkbox" class="player-tiles-rack-mode" />
+
+            <div class="tiles-hand {{#if isYourHand hand}}your-hand{{/if}}" data-meld="-1">
+            {{#each tile in hand.cards}}<div class="tile" data-tile="{{tile}}" style="{{tileStyle tile}}">{{tileRank tile}}</div>{{/each}}
+            </div>
+
+            <div id="game-hand-message">{{hand.message}}</div>
+
+            <div class="local-controls">
+              {{#if hand.isHandsTurn}}
+                {{#if view.meld_phase}}
+                  <span>Play tiles{{#unless hand.hasPlayed}}, or pick up a tile{{/unless}}</span><br/>
+                {{/if}}
+              {{/if}}
+
+              {{#unless view.roundover}}
+                <button id="sort">Sort</button>
+
+                {{#if hand.isHandsTurn}}
+                  {{#if hand.hasPlayed}}
+                    <button id="endturn">End Turn</button>
+                  {{else}}
+                    <button id="draw">Pick Up</button>
+                  {{/if}}
+                {{/if}}
+
+              {{else}}
+                <button id="ready">Ready for Next Round</button>
+              {{/unless}}
+            </div>
+
+          </div>
+        {{/if}}
+      </div>
+    {{/each}}
 
   </div>
 

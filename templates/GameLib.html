@@ -40,7 +40,7 @@
 
 
 <template name="GameConfigure">
-  <h4>Starting New Game</h4>
+  <h4>Starting New Game of {{title}}</h4>
 
   <div id="game-add-players">
     <ul>
@@ -72,24 +72,20 @@
   </div>
 
   {{#if allowjoins}}
-  <div>
-    <label>Wait For Everyone?</label>
-    <input type="checkbox" name="waitall" value="1" checked />
+  <div class="game-config-setting">
+    <label>Wait For Everyone Before Starting?</label>
+    <input type="checkbox" name="waitall" value="1" />
   </div>
   {{/if}}
 
-  <div>
-    <label>Allow Spectators</label>
-    <input type="checkbox" name="allowspectators" value="1" />
-  </div>
-
-
   {{#if configTemplate}}
+    <h5>Gameplay Options</h5>
     <div id="game-extended-options">
       {{> Template.dynamic template=configTemplate}}
     </div>
   {{/if}}
 
+  <br/>
   <button id="game-begin">Begin</button>
 </template>
 
@@ -138,7 +134,7 @@
         </tr>
       </thead>
       <tbody>
-      {{#each slot in data.options.slots}}
+      {{#each slot in getSlots}}
         <tr>
           <td>Player {{slot.slot}}:</td>
           <td>{{slot.type}}</td>
@@ -174,8 +170,6 @@
 
     <div id="game-panel">
 
-      {{> GameWidget_PlayersList data}}
-
       <div id="game-logs">
         {{#each line in data.logs}}
           {{line}}<br/>
@@ -203,25 +197,5 @@
 <template name="GameControls">
   <!-- <button id="game-controls-new">New Game</button> -->
   <button id="game-controls-quit">Quit Game</button>
-</template>
-
-
-<template name="GameWidget_PlayersList">
-  <table id="game-players-list">
-  {{#each slot in options.slots}}
-    <tr>
-      <td>{{slot.slot}}:</td>
-      {{#if slot.userId}}
-        <td><a href="/profile/{{slot.userId}}">{{slot.name}}</a></td>
-      {{else}}
-        {{#if slot.name}}
-          <td>{{slot.name}} {{#if equals slot.type 'computer'}}(computer){{/if}}</td>
-        {{else}}
-          <td>(empty)</td>
-        {{/if}}
-      {{/if}}
-    </tr>
-  {{/each}}
-  </table>
 </template>
 

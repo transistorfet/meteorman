@@ -3,7 +3,7 @@
 
 if (Meteor.isClient) {
 
-    var tileColours = [ '#5080E0', '#B00000', '#FFB800', '#000000' ];
+    var tileColours = [ '#5080E0', '#B00000', '#FFB800', '#000000', '#555555' ];
 
     var $moveTarget = false;
 
@@ -36,10 +36,13 @@ if (Meteor.isClient) {
                 var $destTarget = $(document.elementFromPoint(et.clientX, et.clientY)).closest('.tiles-meld,.tiles-hand.your-hand');
                 console.log(event, $sourceTarget, $moveTarget, $destTarget, et.clientX, et.clientY, $(document.elementFromPoint(et.clientX, et.clientY)));
                 Meteor.call('action', template.data._id, 'move', [ $sourceTarget.attr('data-meld'), $moveTarget.attr('data-tile'), $destTarget.attr('data-meld') ], function (error, result) {
-                    if (error)
+                    //if (error)
                         $moveTarget.css('display', 'inline-block');
                     $moveTarget.removeClass('move');
                     $moveTarget = false;
+
+                    if (error)
+                        FlashMessages.sendInfo(error.reason ? error.reason : error.error);
                 });
 
             }
@@ -51,149 +54,15 @@ if (Meteor.isClient) {
             Meteor.call('action', template.data._id, 'draw', 54);
         },
 
-        'click #discard-pile .tile': function (event, template) {
-            if (!template.data.view.yourTurn)
-                return;
-
-            var tile = $(event.target).attr('data-tile');
-            console.log('discard-pile', tile);
-            if (!tile)
-                return;
-
-            Meteor.call('action', template.data._id, 'draw', tile);
-        },
-
-        'click .tiles-hand .tile': function (event, template) {
-            if (!template.data.view.yourTurn)
-                return;
-
-            var $target = $(event.target);
-
-            if (template.data.view.discard_phase) {
-                var tile = $target.attr('data-tile');
-                console.log('discard-phase', tile);
-                if (tile)
-                    Meteor.call('action', template.data._id, 'discard', tile);
-                return;
-            }
-
-            else if (Session.get('tilerummy_organize')) {
-                if (!$target.closest('.player-tiles').hasClass('game-turn'))
-                    return;
-
-                console.log('things', window.tilerummy_selected, event);
-                if (!window.tilerummy_selected || window.tilerummy_selected == event.target) {
-                    if (!$target.hasClass('selected')) {
-                        window.tilerummy_selected = event.target;
-                        $target.addClass('selected');
-                    }
-                    else {
-                        window.tilerummy_selected = null;
-                        $target.removeClass('selected');
-                    }
-                }
-                else {
-                    console.log('things2', event, event.offsetX > $target.width() / 2);
-                    $(window.tilerummy_selected).detach();
-                    if (event.offsetX > $target.width() / 2) {
-                        $target.after(window.tilerummy_selected);
-                        $target.after(' ');
-                    }
-                    else {
-                        $target.before(window.tilerummy_selected);
-                        $target.before(' ');
-                    }
-
-                    $(window.tilerummy_selected).removeClass('selected');
-                    window.tilerummy_selected = null;
-                }
-            }
-
-            else if (Session.get('tilerummy_meld') || Session.get('tilerummy_layoff')) {
-                if (!$target.closest('.player-tiles').hasClass('game-turn'))
-                    return;
-
-                if (!$target.hasClass('selected')) {
-                    window.tilerummy_selected = event.target;
-                    $target.addClass('selected');
-                }
-                else {
-                    window.tilerummy_selected = null;
-                    $target.removeClass('selected');
-                }
-            }
-        },
-
-        'click .tiles-meld': function (event, template) {
-            if (!template.data.view.yourTurn)
-                return;
-
-            if (Session.get('tilerummy_meld')) {
-                var $target = $(event.target).closest('.tiles-meld');
-                var meld = parseInt($target.attr('data-meld'));
-                console.log('undomeld', meld);
-                Meteor.call('action', template.data._id, 'undo-meld', meld);
-                Session.set('tilerummy_meld', false);
-            }
-        },
-
-        'click #meld': function (event, template) {
-            Session.set('tilerummy_meld', true);
-        },
-
-        'click #layoff': function (event, template) {
-            Session.set('tilerummy_layoff', true);
-        },
-
-        'click #done': function (event, template) {
-            if (Session.get('tilerummy_organize')) {
-                var tiles = [ ];
-                $('.player-tiles.game-turn .tiles-hand .tile').each(function () {
-                    tiles.push(parseInt($(this).attr('data-tile')));
-                });
-                Meteor.call('action', template.data._id, 'organize', tiles);
-                Session.set('tilerummy_organize', false);
-            }
-
-            else if (Session.get('tilerummy_meld') || Session.get('tilerummy_layoff')) {
-                if (Session.get('tilerummy_meld')) {
-                    var action = 'meld';
-                    Session.set('tilerummy_meld', false);
-                }
-                else {
-                    var action = 'layoff';
-                    Session.set('tilerummy_layoff', false);
-                }
-
-                var tiles = [ ];
-                $('.player-tiles.game-turn .tiles-hand .tile.selected').each(function () {
-                    tiles.push(parseInt($(this).attr('data-tile')));
-                    $(this).removeClass('selected');
-                });
-                Meteor.call('action', template.data._id, action, tiles, function (error, result) {
-                    if (error && error.error == 'tilerummy-invalid-meld')
-                        FlashMessages.sendInfo("Sorry, that isn't a valid meld");
-                });
-            }
+        'click #sort': function (event, template) {
+            Meteor.call('action', template.data._id, 'sort');
         },
 
         'click #endturn': function (event, template) {
-            Meteor.call('action', template.data._id, 'endturn');
-        },
-
-        'click #discard': function (event, template) {
-            var tile = $(event.target).attr('data-tile');
-            console.log('discard-phase', tile);
-            if (tile)
-                Meteor.call('action', template.data._id, 'discard', tile);
-        },
-
-        'click #organize': function (event, template) {
-            Session.set('tilerummy_organize', true);
-        },
-
-        'click #sort': function (event, template) {
-            Meteor.call('action', template.data._id, 'sort');
+            Meteor.call('action', template.data._id, 'endturn', function (error, result) {
+                if (error)
+                    FlashMessages.sendInfo(error.reason ? error.reason : error.error);
+            });
         },
 
         'click #reset': function (event, template) {
@@ -202,6 +71,13 @@ if (Meteor.isClient) {
 
         'click #ready': function (event, template) {
             Meteor.call('action', template.data._id, 'ready');
+        },
+
+        'change .player-tiles-rack-mode': function (event, template) {
+            if ($(event.target).is(':checked'))
+                $(event.target).parent().css('position', 'relative');
+            else
+                $(event.target).parent().css('position', 'fixed');
         },
     });
 
@@ -219,10 +95,6 @@ if (Meteor.isClient) {
                 hands.unshift(hands.pop());
             }
             return hands;
-        },
-
-        inSelectMode: function () {
-            return Session.get('tilerummy_organize') || Session.get('tilerummy_meld') || Session.get('tilerummy_layoff');
         },
 
         tileStyle: function (tile) {
@@ -294,8 +166,11 @@ if (Meteor.isServer) {
             var num = this._getPlayerNum(userId);
             if (num) {
                 GameLib.log(this._id, state.players[num].name + " quit the game.");
-                if (state.turn == num)
-                    this.actions.$nextturn.apply(this);
+                if (state.turn == num) {
+                    //this.actions.$nextturn.apply(this);
+                    state.phase = 'next-turn';
+                    Machine.applyRuns(this);
+                }
                 state.players.splice(num, 1);
                 GameLib.updateState(this._id, state);
             }
@@ -304,7 +179,11 @@ if (Meteor.isServer) {
 
         start: function (userId) {
             console.log('starting tilerummy');
-            this._startRound();
+
+            this.state.phase = 'round-start';
+            Machine.applyRuns(this);
+
+            this._checkComputersTurn('', 100);
             GameLib.updateState(this._id, this.state);
         },
 
@@ -330,7 +209,7 @@ if (Meteor.isServer) {
 
             var view = {
                 meld_phase: state.phase == 'meld',
-                roundover: state.phase == 'round-over',
+                roundover: state.phase == 'round-over' || state.phase == 'wait-ready',
                 turn: state.turn,
                 yourTurn: state.players[state.turn].userId == userId,
                 hands: [ ],
@@ -359,6 +238,14 @@ if (Meteor.isServer) {
             return view;
         },
 
+        _getPlayerNum: function (userId) {
+            for (var i in this.state.players) {
+                if (this.state.players[i].userId == userId)
+                    return i;
+            }
+            return null;
+        },
+
 
         _initGame: function () {
             var state = this.state;
@@ -375,6 +262,7 @@ if (Meteor.isServer) {
                 score: 0,
                 cards: [ ],
                 message: '',
+                firstDown: false,
             });
             return this.state.players.length - 1;
         },
@@ -389,74 +277,24 @@ if (Meteor.isServer) {
                 players[j].message = '';
             }
 
-            /*
-            state.deck = CardUtils.makeDeck({});
-
-            // deal cards to players
-            var toDeal = (players.length <= 2) ? 10 : 7;
-            for (var i = 0; i < toDeal; i++) {
-                for (var j in players)
-                    state.players[j].cards.push(state.deck.shift());
-            }
-            */
-
-            //state.phase = 'draw';
             state.melds = [ ];
             state.message = '';
-            //state.first = this._nextPlayer(state.first);
-            //state.turn = state.first;
-
-            //state.meldsBackup = state.melds;
-            //state.handBackup = state.players[state.turn].cards;
         },
 
-        _startRound: function () {
-            GameLib.log(this._id, "starting new round");
 
-            this._initRound();
-
-            this.state.phase = 'round-start';
-            Machine.applyRuns(this);
-
-            this._checkComputersTurn('', 100);
-        },
-
-        _endRound: function () {
-            var state = this.state;
-            state.phase = 'round-over';
-
-            GameLib.log(this._id, "round ended");
-
-            for (var i in state.players) {
-                var total = state.players[i].cards.reduce(function (previous, current, index) {
-                    var rank = CardUtils.rank(current);
-                    return previous + rank;
-                }, 0);
-
-                if (total <= 0)
-                    state.message = state.players[i].name + " won this round";
-                state.players[i].score += total;
+        _hasRequiredFirstDown: function () {
+            var sum = 0;
+            for (var i = this.state.meldsBackup.length; i < this.state.melds.length; i++) {
+                for (var j in this.state.melds[i]) {
+                    var rank = CardUtils.rank(this.state.melds[i][j]);
+                    sum += ( CardUtils.isJoker(rank) ? 0 : rank );
+                }
             }
 
-            if (!state.message)
-                state.message = "Nobody wins this round.";
+            var required = parseInt(this.options.requiredFirstDown);
+            if (!required) required = 25;
+            return (sum >= required) ? true : false;
         },
-
-
-
-        _nextPlayer: function (current) {
-            current += 1;
-            return (current < this.state.players.length) ? current : 0;
-        },
-
-        _getPlayerNum: function (userId) {
-            for (var i in this.state.players) {
-                if (this.state.players[i].userId == userId)
-                    return i;
-            }
-            return null;
-        },
-
 
 
         _checkComputersTurn: function (userId, delay) {
@@ -504,8 +342,11 @@ if (Meteor.isServer) {
 
 
     Game.actions = {
-        '$deal': function () {
+        '$startround': function () {
             var state = this.state;
+
+            GameLib.log(this._id, "starting new round");
+            this._initRound();
 
             state.deck = CardUtils.makeDeck({ sets: 2, jokers: 2 });
             var toDeal = 14;
@@ -513,6 +354,13 @@ if (Meteor.isServer) {
                 for (var j in state.players)
                     state.players[j].cards.push(state.deck.shift());
             }
+
+            state.first = (++state.first < state.players.length) ? state.first : 0;
+            state.turn = state.first;
+            GameLib.log(this._id, state.players[state.turn].name + " goes first");
+
+            state.meldsBackup = state.melds;
+            state.handBackup = state.players[state.turn].cards;
         },
 
         'draw': function (userId, action, args) {
@@ -527,42 +375,6 @@ if (Meteor.isServer) {
             var cards = state.deck.splice(i, 1);
             player.cards.push(cards[0]);
             //CardUtils.sortByRankAndSuit(player.cards);
-            return true;
-        },
-
-        'meld': function (userId, action, args) {
-            var state = this.state;
-            var player = state.players[state.turn];
-
-            if (!_isMeldOfKind(args, player) && !_isMeldOfRun(args, player))
-                throw new Meteor.Error('tilerummy-invalid-meld');
-
-            for (var i in args) {
-                var index = player.cards.indexOf(args[i]);
-                if (index >= 0)
-                    player.cards.splice(index, 1);
-            }
-
-            state.melds.push(args);
-            player.hasPlayed = true;
-            return true;
-        },
-
-        'layoff': function (userId, action, args) {
-            var state = this.state;
-            var player = state.players[state.turn];
-
-            if (!_isMeldOfKind(args, player) && !_isMeldOfRun(args, player))
-                throw new Meteor.Error('tilerummy-invalid-meld');
-
-            for (var i in args) {
-                var index = player.cards.indexOf(args[i]);
-                if (index >= 0)
-                    player.cards.splice(index, 1);
-            }
-
-            state.melds.push(args);
-            player.hasPlayed = true;
             return true;
         },
 
@@ -584,23 +396,25 @@ if (Meteor.isServer) {
             if (destnum === null || destnum < -2 || destnum > state.melds.length || sourcenum == destnum)
                 throw new Meteor.Error('tilerummy-invalid-dest');
             if (destnum == -1 && state.handBackup.indexOf(tile) < 0)
-                throw new Meteor.Error('tilerummy-not-your-tile');
+                throw new Meteor.Error('tilerummy-not-your-tile', "You cannot put that tile on your rack");
             if (destnum == -2)
                 destnum = state.melds.push([]) - 1;
+            if (!player.firstDown && destnum >= 0 && destnum < state.meldsBackup.length && !this._hasRequiredFirstDown())
+                throw new Meteor.Error('tilerummy-first-down', "You must first make your own melds totaling " + this.options.requiredFirstDown + " point");
+
             var dest = destnum >= 0 ? state.melds[destnum] : player.cards;
 
             source.splice(tilenum, 1);
             if (source.length <= 0 && sourcenum >= 0)
                 state.melds.splice(sourcenum, 1);
 
-            //var meld = dest.concat([ tile ]);
             dest.push(tile);
             CardUtils.sortByRankAndSuit(dest);
-            //if (!_isMeldOfKind(meld) && !_isMeldOfRun(meld))
-            //    throw new Meteor.Error('tilerummy-invalid-meld');
 
-
-            player.hasPlayed = true;
+            if (player.cards.length >= state.handBackup.length)
+                player.hasPlayed = false;
+            else
+                player.hasPlayed = true;
             console.log('done', state.melds, player.cards);
             return true;
         },
@@ -614,30 +428,8 @@ if (Meteor.isServer) {
             return true;
         },
 
-        'organize': function (userId, action, args) {
-            var state = this.state;
-            var player = state.players[state.turn];
-
-            var newhand = [ ];
-            for (var i in args) {
-                var card = parseInt(args[i]);
-                var index = player.cards.indexOf(card);
-                if (index >= 0) {
-                    player.cards.splice(index, 1);
-                    newhand.push(card);
-                }
-            }
-            for (var i in player.cards)
-                newhand.push(player.cards[i]);
-
-            console.log('newhand', newhand);
-            player.cards = newhand;
-            //this._nextPhase();
-            return true;
-        },
-
         'sort': function (userId, action, args) {
-            var player = this.state.players[this.state.turn];
+            var player = this.state.players[this._getPlayerNum(userId)];
             CardUtils.sortByRankAndSuit(player.cards)
             return true;
 	},
@@ -645,18 +437,27 @@ if (Meteor.isServer) {
         'endturn': function (userId, action, args) {
             var player = this.state.players[this.state.turn];
             if (player.hasPlayed !== true)
-                throw new Meteor.Error('tilerummy-must-draw-or-play');
+                throw new Meteor.Error('tilerummy-must-draw-or-play', "You must either play a tile or pick up a tile");
+
             for (var i in this.state.melds) {
                 if (!_isMeldOfKind(this.state.melds[i]) && !_isMeldOfRun(this.state.melds[i]))
-                    throw new Meteor.Error('tilerummy-invalid-melds-left');
+                    throw new Meteor.Error('tilerummy-invalid-melds-left', "You must fix any invalid melds before you can end your turn");
             }
+
+            if (!player.firstDown) {
+                if (!this._hasRequiredFirstDown())
+                    throw new Meteor.Error('tilerummy-first-down', "You must first make your own melds totaling " + this.options.requiredFirstDown + " point");
+                player.firstDown = true;
+            }
+
+            this.state.melds.sort(function(a, b) { return a[0] - b[0]; });
             return true;
         },
 
         '$nextturn': function () {
             var state = this.state;
             if (state.players[state.turn].cards.length <= 0 || state.deck.length <= 0)
-                this._endRound();
+                return;
 
             for (var i = state.turn + 1; ; i++) {
                 if (i >= state.players.length)
@@ -666,16 +467,37 @@ if (Meteor.isServer) {
                 if (state.players[i].cards != false) {
                     state.players[state.turn].hasPlayed = false;
                     state.turn = i;
-                    state.phase = 'meld';
+                    //state.phase = 'meld';
                     state.meldsBackup = state.melds;
                     state.handBackup = state.players[state.turn].cards;
                     console.log('handbackup', state.handBackup);
-                    return;
+                    return true;
                 }
             }
 
             console.log("everyone's out, next round?");
-            this._endRound();
+            return;
+        },
+
+        '$endround': function () {
+            var state = this.state;
+
+            GameLib.log(this._id, "round ended");
+
+            for (var i in state.players) {
+                var total = state.players[i].cards.reduce(function (previous, current, index) {
+                    var rank = CardUtils.rank(current);
+                    return previous + ( CardUtils.isJoker(rank) ? 30 : rank );
+                }, 0);
+
+                if (total <= 0)
+                    state.message = state.players[i].name + " won this round";
+                state.players[i].score -= total;
+            }
+
+            if (!state.message)
+                state.message = "Nobody wins this round.";
+            GameLib.log(this._id, state.message);
         },
     }
 
@@ -690,17 +512,9 @@ if (Meteor.isServer) {
 
     Machine.addRule({
         condition: { phase: 'round-start' },
-        run: Game.actions.$deal,
+        run: Game.actions.$startround,
         success: function (result, argslist) {
-            var state = this.state;
-
-            state.phase = 'meld';
-            state.first = this._nextPlayer(state.first);
-            state.turn = state.first;
-            GameLib.log(this._id, state.players[state.turn].name + " goes first");
-
-            state.meldsBackup = state.melds;
-            state.handBackup = state.players[state.turn].cards;
+            this.state.phase = 'meld';
         },
     });
 
@@ -724,32 +538,34 @@ if (Meteor.isServer) {
             'endturn': Game.actions.endturn,
         },
         success: function (result, argslist) {
-            if (argslist[1] == 'draw' || argslist[1] == 'endturn') {
+            if (argslist[1] == 'draw' || argslist[1] == 'endturn')
                 this.state.phase = 'next-turn';
-    /*
-                var state = this.state;
-                var player = state.players[state.turn];
-
-                if (player.cards.length <= 0 || state.deck.length <= 0)
-                    this._endRound();
-                else {
-                    this._nextTurn();
-                }
-    */
-            }
         },
     });
 
     Machine.addRule({
         condition: { phase: 'next-turn' },
         run: Game.actions.$nextturn,
-        success: function () {
-            this.state.phase = 'meld';
+        success: function (result, argslist) {
+            if (result === true)
+                this.state.phase = 'meld';
+            else {
+                this.state.phase = 'round-over';
+                console.log('round over here');
+            }
         },
     });
 
     Machine.addRule({
         condition: { phase: 'round-over' },
+        run: Game.actions.$endround,
+        success: function (result, argslist) {
+            this.state.phase = 'wait-ready';
+        },
+    });
+
+    Machine.addRule({
+        condition: { phase: 'wait-ready' },
         actions: { 'ready': function (userId, action, args) {
                 var player = this.state.players[this._getPlayerNum(userId)];
                 player.cards = [ ];
@@ -757,7 +573,7 @@ if (Meteor.isServer) {
         },
         success: function (result, argslist) {
             if (this.state.players.every(function (value) { return value.type == 'computer' || value.cards; }))
-                this._startRound();
+                this.state.phase = 'round-start';
         },
     });
 
@@ -775,7 +591,7 @@ var _isMeldOfKind = function (meld, player) {
             return false;
 
         var [ rank2, suit2 ] = CardUtils.rankAndSuit(meld[i]);
-        if (suit == suit2 || rank != rank2)
+        if (meld[i] != CardUtils.Joker && (suit == suit2 || rank != rank2))
             return false;
     }
     return true;
@@ -792,8 +608,16 @@ var _isMeldOfRun = function (meld, player) {
             return false;
 
         var [ rank2, suit2 ] = CardUtils.rankAndSuit(meld[i]);
-        if (suit != suit2 || rank + 1 != rank2)
-            return false;
+        if (suit != suit2 || rank + 1 != rank2) {
+            if (meld[i] == CardUtils.Joker)
+                continue;
+            else if (rank + 2 == rank2 && meld[meld.length - 1] == CardUtils.Joker) {
+                meld.splice(i, 0, meld.splice(meld.length - 1)[0]);
+                i++;
+            }
+            else
+                return false;
+        }
         rank = rank2;
     }
     return true;

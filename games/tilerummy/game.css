@@ -4,7 +4,8 @@
 }
 
 #games-tilerummy h5 {
-  margin-bottom: 4px;
+  margin: 4px 0px;
+  padding: 4px 0px;
 }
 
 #games-tilerummy .tile {
@@ -57,10 +58,6 @@
   opacity: 0.5;
 }
 
-#games-tilerummy .tiles-hand {
-  display: inline-block;
-}
-
 #games-tilerummy #game-message {
     margin-top: 4px;
     margin-bottom: 4px;
@@ -71,14 +68,25 @@
   width: 3em;
 }
 
-#games-tilerummy .player-tiles.your-hand {
+
+#games-tilerummy .tiles-hand {
+  display: inline-block;
+}
+
+#games-tilerummy .player-tiles-rack.your-hand {
   position: fixed;
   z-index: 100;
   bottom: 0px;
   left: 0px;
   right: 0px;
-  border-top: 1px solid black;
+  border: 1px solid black;
   background-color: #907050;
   /*background-color: #C0F0C0;*/
+  padding: 8px 4px 8px 4px;
 }
+
+#games-tilerummy .player-tiles-rack-mode {
+  float: right;
+}
+
 
