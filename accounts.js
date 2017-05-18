@@ -8,7 +8,7 @@ if (Meteor.isClient) {
 }
 
 if (Meteor.isServer) {
-    process.env.MAIL_URL = 'smtp://localhost:25/';
+    process.env.MAIL_URL = 'smtp://0.0.0.0:25/';
 
     Accounts.config({
         sendVerificationEmail: true,
