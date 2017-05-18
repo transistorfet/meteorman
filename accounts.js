@@ -8,7 +8,8 @@ if (Meteor.isClient) {
 }
 
 if (Meteor.isServer) {
-    process.env.MAIL_URL = 'smtp://0.0.0.0:25/';
+    if (!process.env.MAIL_URL)
+	process.env.MAIL_URL = 'smtp://jabberwocky.ca:25/';
 
     Accounts.config({
         sendVerificationEmail: true,
