@@ -122,7 +122,7 @@ if (Meteor.isServer) {
             if (result !== false) {
                 if ('success' in rule)
                     rule.success.apply(object, [ result, argslist ]);
-                console.log('rule success', object.state);
+                console.log('rule success');
                 return true;
             }
             else {

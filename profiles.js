@@ -186,7 +186,7 @@ if (Meteor.isServer) {
         var data = user.fetch()[0];
         //var friends = Meteor.users.find({ $in: { _id: data.profile.friends } }, { fields: { username: 1 } });
         var games = GameState.find({ users: { $in: [ userId ] } }, { fields: { createdAt: 1, options: 1, started: 1 } });
-        console.log('states', games.fetch());
+        //console.log('states', games.fetch());
         return [ user, games ];
     });
 

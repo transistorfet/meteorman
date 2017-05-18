@@ -34,7 +34,7 @@
 
     {{#each hand in getHands}}
       <div class="player-tiles {{#if hand.isHandsTurn}}game-turn{{/if}} {{#if isYourHand hand}}your-hand{{/if}}">
-        <h5>{{hand.name}} - {{hand.score}} {{#if hand.isHandsTurn}}*{{/if}}</h5>
+        <h5>{{hand.name}} - Tiles: {{hand.cards.length}}, Score: {{hand.score}} {{#if hand.isHandsTurn}}*{{/if}}</h5>
 
         {{#if isYourHand hand}}
           <div class="player-tiles-rack {{#if isYourHand hand}}your-hand{{/if}}">
@@ -73,6 +73,10 @@
         {{/if}}
       </div>
     {{/each}}
+
+    <div>
+      <span>Tile Pool: {{view.tilesLeft}}</span>
+    </div>
 
   </div>
 

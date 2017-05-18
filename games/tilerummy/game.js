@@ -34,7 +34,7 @@ if (Meteor.isClient) {
                 var $sourceTarget = $moveTarget.closest('.tiles-meld,.tiles-hand.your-hand');
                 var et = event.type == 'touchend' ? event.originalEvent.changedTouches[0] : event;
                 var $destTarget = $(document.elementFromPoint(et.clientX, et.clientY)).closest('.tiles-meld,.tiles-hand.your-hand');
-                console.log(event, $sourceTarget, $moveTarget, $destTarget, et.clientX, et.clientY, $(document.elementFromPoint(et.clientX, et.clientY)));
+                //console.log(event, $sourceTarget, $moveTarget, $destTarget, et.clientX, et.clientY, $(document.elementFromPoint(et.clientX, et.clientY)));
                 Meteor.call('action', template.data._id, 'move', [ $sourceTarget.attr('data-meld'), $moveTarget.attr('data-tile'), $destTarget.attr('data-meld') ], function (error, result) {
                     //if (error)
                         $moveTarget.css('display', 'inline-block');
@@ -215,6 +215,7 @@ if (Meteor.isServer) {
                 hands: [ ],
                 melds: state.melds,
                 message: state.message,
+                tilesLeft: state.deck.length,
             };
 
             for (var i in state.players) {
@@ -301,7 +302,7 @@ if (Meteor.isServer) {
             var self = this;
 
             delay = delay ? delay : 100;
-            if (this.state.players[this.state.turn].type == 'computer') {
+            if (this.state.players[this.state.turn].type == 'computer' && !self.bot.running) {
                 Meteor.setTimeout(function () {
                     // in case something changed during the time delay, check who's turn it is again
                     if (self.state.players[self.state.turn].type != 'computer')
@@ -316,10 +317,13 @@ if (Meteor.isServer) {
     };
 
     Game.bot = {
+        running: false,
         doTurn: function (gameobj, userId) {
             var state = gameobj.state;
-            console.log('computers turn', state.players[state.turn]);
+            var player = state.players[state.turn];
+            console.log('computers turn', player);
 
+            Game.bot.running = true;
             try {
                 /*
                 if (state.phase.indexOf('betting') >= 0)
@@ -330,12 +334,42 @@ if (Meteor.isServer) {
                     gameobj._nextTurn();
                     //this.action(self, userId, 'ready');
                 */
-                gameobj.actions.$nextturn.apply(gameobj);
+                //gameobj.actions.$nextturn.apply(gameobj);
+
+                /*
+                player.cards.sort(function(a, b) { return a - b; });
+                var first = false;
+                var [ rankp, suitp ] = CardUtils.rankAndSuit(player.cards[0]);
+                for (var i = 1; i < player.cards.length; i++) {
+                    var [ rank, suit ] = CardUtils.rankAndSuit(player.cards[i]);
+                    if (rankp == rank && suitp == suit) {
+                        player.cards.push(player.cards.splice(i, 1)[0]);
+                        var [ rank, suit ] = CardUtils.rankAndSuit(player.cards[i]);
+                    }
+
+                    if (rankp + 1 == rank)
+                        if (!first) first = i;
+                    else if (first) {
+                        if (first + 3 >= i) {
+                            gameobj.action(userId, 'move', [ -1, player.cards[first], -2 ]);
+                            for (var j = player.cards.first + 1; j < i; j++)
+                                gameobj.action(userId, 'move', [ -1, player.cards[j], state.melds.length + 1 ]);
+                        }
+                        first = false;
+                    }
+                    rankp = rank;
+                    suitp = suit;
+                }
+                gameobj.action(userId, 'endturn');
+                */
+                gameobj.action(userId, 'draw');
             }
             catch (error) {
                 console.log("error during computer's turn", error);
-                gameobj.action(userId, 'fold');
+                gameobj.action(userId, 'reset');
+                gameobj.action(userId, 'draw');
             }
+            Game.bot.running = false;
             return true;
         },
     };
@@ -415,7 +449,7 @@ if (Meteor.isServer) {
                 player.hasPlayed = false;
             else
                 player.hasPlayed = true;
-            console.log('done', state.melds, player.cards);
+            console.log('move success', state.melds, player.cards);
             return true;
         },
 
